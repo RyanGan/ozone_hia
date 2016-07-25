@@ -16,10 +16,10 @@ std_err <- c(1.3, 1.7, 1.3, 1.8, 1.3, 1.1, 1.5, 1.6, 1.7)
 
 # Using meta.summaries procedure to pool and estimate the emergency department
 # rate and corresponding standard errors
-?meta.summaries
-
 pooled_estimates <- meta.summaries(ed_rate, std_err, method = 'exact')
 summary(pooled_estimates)
+# smaller varience estiamtes carry more weight.
+# random or exact method doesn't change results.
 
 # Estimates are 10.67 pooled ed rate over this time, with 95% CI of 9.74 - 11.6
 (9.74 - 10.67)/-1.96
