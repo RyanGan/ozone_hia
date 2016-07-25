@@ -9,6 +9,7 @@ Approach to use Monte Carlo methods to estimate HIA forumla
 
 ### Analyses to rerun
 Jake to rerun estimates of delta y using monte carlo approach for:
+
 1. Entire U.S.
 2. State-specific (updates maps)
 3. Stratum-specific estimates (race, sex)
