@@ -23,7 +23,7 @@ summary(pooled_estimates)
 
 # Estimates are 10.67 pooled ed rate over this time, with 95% CI of 9.74 - 11.6
 (9.74 - 10.67)/-1.96
-(11.6 -10.67)/1.96
+(11.6 - 10.67)/1.96
 
 # std error from meta analysis if 0.474
 
