@@ -25,4 +25,3 @@ asthma_table_test <- as.numeric(asthma_table$Prevalence.Number.)
 
 test <- unlist(strsplit(asthma_table$X95..CI...Number., split = "[-]"))
 test
-regre
