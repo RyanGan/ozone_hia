@@ -48,7 +48,7 @@ year_url <- c("2013/child", "2012/child", "2011/child", "2010/child/current",
               "09/child/current", "08/child/current", "07/child/current", 
               "06/child/current", "05/child/current")
 
-for (j in 1:length(year_url)){
+for(j in 1:length(year_url)){
 
 # define URL path for current asthma prev tables
 url <- paste("http://www.cdc.gov/asthma/brfss/", year_url[j], "/tableC1.htm",
@@ -108,8 +108,50 @@ state_count <- aggregate(yearly_prev_se_est, by = list(yearly_prev_se_est$state)
 
 state_list <- state_count[,1]
 state_est_count <- state_count[,2]
+pooled_prev_n <- replicate(length(state_list), NA)
+pooled_se_n <- replicate(length(state_list), NA)
 
-# loop to run meta analyses
+# Loop to run meta analyses ----------------------------------------------------
 
-# I need to subset each strata and the years available to run a meta analysis
-for
+# empty dataframe of pooled estimates
+us_state_meta_results <- data.frame(state_list, state_est_count, pooled_prev_n,
+                                    pooled_se_n)
+
+# I need to subset each strata and the years available to run a meta analysis 
+for(k in 1:45){ # 45 values for states with some prevalence data available
+
+  # subset the strata values
+  strata_estimates <- subset(yearly_prev_se_est, state == state_list[k])
+  
+  # output the strata-specific prevalence estimates in to a vector
+  prev_n_vector <- strata_estimates[,3]
+  # output the strata-specific standard errors
+  prev_std_err_vector <- strata_estimates[,6]
+  # run meta analysis of prevalence estimates and standard errors
+  pooled_estimates <- meta.summaries(prev_n_vector, prev_std_err_vector, 
+                                     # fixed and random produce same results
+                                     method = 'fixed') 
+  # I need to extract the final pooled prevalence and bounds
+  pooled_prev <- pooled_estimates$summary
+  pooled_se <- pooled_estimates$se.summary
+  
+  # bind in these values to the specific strata/state
+  us_state_meta_results[k, 3] <- pooled_prev
+  us_state_meta_results[k, 4] <- pooled_se
+  
+}
+
+us_state_meta_results
+# Print delaware pooled estimate. Since there is only 1 observation, this pooled
+# value should be the same as the observation. It is
+us_state_meta_results[41,]
+del <- subset(yearly_prev_se_est, state == state_list[41])
+del
+
+# check US estimate
+us_state_meta_results[28, ]
+us <- subset(yearly_prev_se_est, state == "US")
+us
+# meta analysis is the same as produced in the above loop; it's working.
+us_meta <- meta.summaries(us$prev_n_est, us$prev_se_est, method = 'fixed')
+str(us_meta)
