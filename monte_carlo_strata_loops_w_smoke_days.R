@@ -165,7 +165,7 @@ assign(hia_name, hia_df)
 
 # write permanent dataset
 write_path <- paste('./data/mc_estimates/', hia_name, '.csv', sep = '')
-write.csv(hia_df , file = write_path)
+write_csv(hia_df , write_path)
 
 }
 
