@@ -86,7 +86,7 @@ for(k in 1:length(df_list)){
   yo_se_total <- df_to_loop[1,3] 
   
   yo_distribution <- rnorm(n, mean = yo_total, sd = yo_se_total)
-
+  
   # using the same beta estimate for all simulations
   beta_total <- df_to_loop[1, 8]
   beta_se_total <- df_to_loop[1, 9]
