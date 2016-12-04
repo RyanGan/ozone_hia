@@ -5,8 +5,7 @@
 # ------------------------------------------------------------------------------
 
 # Note: Ryan modification on Dec 1 2016
-# Jake, I'm going to remove packages I don't need for MC loop for now.
-
+# Note Dec 4 2016: Trying to move smoky days term (delta_o3*smoky_days)
 library(tidyverse)
 
 # Read in stratum dataframes ---------------------------------------------------
@@ -144,7 +143,8 @@ for(k in 1:length(df_list)){
       
       # apply the HIA formula with the randomly selected values above
       # and save the estimate delta y in the vector, n times
-      delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
+      # change placement of smoky_days
+      delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)*est_smoky_days))*pop_at_risk)
      
     } # end of inner loop of HIA estimate
    
