@@ -144,7 +144,7 @@ for(k in 1:length(df_list)){
       # apply the HIA formula with the randomly selected values above
       # and save the estimate delta y in the vector, n times
       # change placement of smoky_days
-      delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)*est_smoky_days))*pop_at_risk)
+      delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
      
     } # end of inner loop of HIA estimate
    
