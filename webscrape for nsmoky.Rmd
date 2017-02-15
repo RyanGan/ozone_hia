@@ -1,0 +1,88 @@
+```{r}
+
+library(rvest)
+library(rmeta)
+library(RCurl)
+library(sp)
+library(maps)
+library(maptools)
+library(dplyr)
+
+```
+
+
+```{r}
+
+
+x <- getURL("https://raw.githubusercontent.com/stevenjoelbrey/SmokeInTheCity/master/figures/PM2.5_non_FRM_Mass_24hr_Arithmetic.Mean_allSummers_ecmwf_nDays%3D10_TSdFactor%3D0/summary_data.csv")
+summary_csv <- read.csv(text = x)
+
+pointsDF <- summary_csv[c(4,5)]
+
+#I need to use the lat/lon data to determine what state each measurement corresponds to#
+
+latlong2state <- function(pointsDF) {
+  # Prepare SpatialPolygons object with one SpatialPolygon
+  # per state (plus DC, minus HI & AK)
+  states <- map('state', fill=TRUE, col="transparent", plot=FALSE)
+  IDs <- sapply(strsplit(states$names, ":"), function(x) x[1])
+  states_sp <- map2SpatialPolygons(states, IDs=IDs,
+                                   proj4string=CRS("+proj=longlat +datum=WGS84"))
+  
+  # Convert pointsDF to a SpatialPoints object 
+  pointsSP <- SpatialPoints(pointsDF, 
+                            proj4string=CRS("+proj=longlat +datum=WGS84"))
+  
+  # Use 'over' to get _indices_ of the Polygons object containing each point 
+  indices <- over(pointsSP, states_sp)
+  
+  # Return the state names of the Polygons object containing each point
+  stateNames <- sapply(states_sp@polygons, function(x) x@ID)
+  stateNames[indices]
+}
+
+# Test the function using points in Wisconsin and Oregon.
+testPoints <- data.frame(x = c(-90, -120), y = c(44, 44))
+
+latlong2state(pointsDF)
+
+#seems to be working, lets try to put the results into a dataframe
+
+summary_csv$state <- latlong2state(pointsDF)
+
+#There are a few results that look like they're from AK and HI, lets remove them
+
+summary_csv <- summary_csv[complete.cases(summary_csv),]
+
+#Calculate the average delta ozone value in each state with CIs
+
+state_mean_delta_o3 <- aggregate(differenceOfMeans~state, summary_csv, mean)
+do3_CI_low <- aggregate(confInt_lower~state, summary_csv, mean)
+do3_CI_high <- aggregate(confInt_upper~state, summary_csv, mean)
+
+state_mean_delta_o3$SE <- ((do3_CI_high$confInt_upper - state_mean_delta_o3$differenceOfMeans) / 1.96)
+
+
+
+#delete DC and add in missing states
+
+state_mean_delta_o3 <- state_mean_delta_o3[-c(6), ]
+
+state_mean_delta_o3[46, 1] <- c("arizona")
+state_mean_delta_o3[46, 2] <- NA
+
+state_mean_delta_o3 <- state_mean_delta_o3[-c(45.1), ]
+
+state_mean_delta_o3[47, 1] <- c("nebraska")
+state_mean_delta_o3[47, 2] <- NA
+
+state_mean_delta_o3[48, 1] <- c("west virginia")
+state_mean_delta_o3[48, 2] <- NA
+
+state_mean_delta_o3[49, 1] <- c("delaware")
+state_mean_delta_o3[49, 2] <- NA
+
+state_mean_delta_o3 <- state_mean_delta_o3[-c(46.1), ]
+
+
+```
