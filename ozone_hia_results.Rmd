@@ -77,7 +77,7 @@ Estimates of ED visit burden in U.S. children with asthma that may be due to exp
 Note: I will need to remove beta and SE from datasets. Yo and beta are now simulated outside the MC so that we draw from the same distribution each time.
 
 ```{r monte carlo estimate, message = F, warning = F}
-
+f
 # Loop 
 # Set seed  to use so sample distributions and resampling is somewhat similar
 sim_seed <- 1234
