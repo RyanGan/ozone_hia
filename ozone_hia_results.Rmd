@@ -11,7 +11,7 @@ Contains code use
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
-library(ggmap)
+#library(ggmap)
 ```
 
 ```{r data read, message = F, echo = F,  warning = F}
@@ -69,7 +69,7 @@ for(q in 1:length(df_list)){
 df_list <- list(total=total, male=male, female=female, black=black, 
                 hisp=hisp, white=white)
 # check out first element of list to make sure smoky days variable is there
-glimpse(df_list[2]) # it is
+# glimpse(df_list[2]) # it is
 
 ```
 
@@ -191,7 +191,7 @@ for(k in 1:length(df_list)){
       # average daily estimate
       delta_y_daily[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)
       # average period estimate
-      delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
+  delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
 
     } # end of inner loop of HIA estimate
     
@@ -234,7 +234,6 @@ colnames(us_estimate) <- colnames(hia_df)
 # bind US estimate to full dataframe
 hia_df <- rbind(hia_df, us_estimate)
   
-
 # create environment dataframe with name of original dataset hia is based off
 # period estimates
 hia_p_name <- paste(df_name, 'hia_period', sep = '_')
@@ -305,7 +304,7 @@ daily_us_plot <- ggplot(daily_df, aes(x = group, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("Strata") +
-  ylab(expression(paste(Delta, " Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Emergency Department Visit"))) +
   coord_flip() +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
     panel.grid.major = element_blank(),
@@ -359,7 +358,7 @@ daily_plot <- ggplot(daily_df, aes(x = state, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("State") +
-  ylab(expression(paste(Delta, " Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Emergency Department Visit"))) +
   coord_flip() +
   facet_wrap(~group) +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -374,6 +373,10 @@ daily_plot
 ```
 
 ### Daily Map
+
+This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
+
+### Note for Jake: I noticed Alabama doesn't have estimates for Whites, but it does have estimates for Blacks and Hispanics. This seems a bit odd and should be checked.
 
 ```{r daily map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
@@ -397,49 +400,40 @@ daily_df <- rbind(total_hia_daily, female_hia_daily, male_hia_daily,
   select(-group, -lower_bound, -upper_bound) %>% 
   # I don't want group as there is a group in spatial map
   rename(strata = group2) 
-  
 
-
-
-glimpse(filter(state_map_df, is.na(median)))
-# use ggmap to get U.S map
-state_map <- map_data("state")
+# create maps using ggplot2 ----
+state_map_df <- map_data("state")
 
 # merge median values to statemap
-state_map_df <- state_map %>% 
+state_vals_map_df <- state_map_df %>% 
   full_join(daily_df, by = c("region" = "state")) %>% 
-  mutate(missing = ifelse(is.na(median), 1, 0))
+  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
+  filter(!is.na(strata))
 
-summary(state_map_df)
+# preserve order of strata (groups)
+state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
+  levels = unique(as.character(state_vals_map_df$strata)))
 
 daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
-  geom_polygon(aes(fill = median), alpha = 0.7) +
+  # outline of states
+  geom_path() +
+  # fill with median value of delta y
+  geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
   scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c', 
                       guide = guide_legend(title.position = "top", order = 1)) +
-  geom_path() +
-  geom_polygon(data = state_map_df, aes(x=long, y=lat, group=group)) +
   xlab("Longitude") +
   ylab("Latitude") +
-  facet_wrap(~strata)
+  facet_wrap(~strata) + 
+  theme(panel.background = element_rect(fill = 'white', colour = 'black'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # strip element
+    strip.background = element_rect(colour=NA, fill=NA),
+    panel.border = element_rect(fill = NA, color = "black"))
 
 daily_map
 
-
-ggmap(washington_map) + 
-  geom_polygon(data = wash_zip_df, 
-    aes(x=long, y=lat, group = group, fill = geo_smk10_days), alpha = 0.7) +
-  scale_fill_gradient(expression("Number of \nSmoke Days"),
-    low = '#2c7bb6', high = '#d7191c', 
-    guide = guide_legend(title.position = "top", order = 1)) +
-  geom_point(data = fire_loc, aes(x = Longitude, y = Latitude, shape = "Fire Locations"), 
-             colour = "black", fill = "red") +
-  scale_shape_manual(name = "", values = 24, 
-                     guide = guide_legend(title.position = "top", order = 2)) +
-  xlab("Longitude") +
-  ylab("Latitude")
-
 ```
-
 
 ## Study Period (2005-2014) \(\Delta \) Emergency Department Visits
 
@@ -544,3 +538,70 @@ period_plot <- ggplot(period_df, aes(x = state, y = median)) +
 period_plot
 
 ```
+
+### Period Map
+
+This is the small multiples map of the median overall \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
+
+### Note for Jake: I noticed Alabama doesn't have estimates for Whites, but it does have estimates for Blacks and Hispanics. This seems a bit odd and should be checked.
+
+```{r period map, message = F, warning=F, echo = F, results='asis'}
+# I need to create a similar dataframe for small multiples as before, but I
+# need to preserve the lowercase state names to merge
+# small multiples plot
+period_df <- rbind(total_hia_period, female_hia_period, male_hia_period,
+                  white_hia_period, black_hia_period, hisp_hia_period) %>% 
+  filter(state != "state_sum") %>% 
+  # capitalize first letter of each state
+  mutate(state2 = gsub("(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2", 
+                      state, perl=TRUE),
+         median = as.numeric(median),
+         lower_bound = as.numeric(lower_bound),
+         upper_bound = as.numeric(upper_bound),
+         group2 = ifelse(group == "total", "Total",
+                  ifelse(group == "female", "Female",
+                  ifelse(group == "male", "Male",
+                  ifelse(group == "white", "White",
+                  ifelse(group == "black", "Black",
+                  ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
+  select(-group, -lower_bound, -upper_bound) %>% 
+  # I don't want group as there is a group in spatial map
+  rename(strata = group2) 
+
+# create maps using ggplot2 ----
+state_map_df <- map_data("state")
+
+# merge median values to statemap
+state_vals_map_df <- state_map_df %>% 
+  full_join(period_df, by = c("region" = "state")) %>% 
+  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
+  filter(!is.na(strata))
+
+# preserve order of strata (groups)
+state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
+  levels = unique(as.character(state_vals_map_df$strata)))
+
+period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
+  # outline of states
+  geom_path() +
+  # fill with median value of delta y
+  geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
+  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c', 
+                      guide = guide_legend(title.position = "top", order = 1)) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  facet_wrap(~strata) + 
+  theme(panel.background = element_rect(fill = 'white', colour = 'black'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # strip element
+    strip.background = element_rect(colour=NA, fill=NA),
+    panel.border = element_rect(fill = NA, color = "black"))
+
+period_map
+
+```
+
+
+### Notes: 
+Colors on maps could be changed as well as the text size on the line plots (State names are hard to read). Also, we should do a final check of all the inputs going in to the Monte Carlo. Otherwise, things look in order.
