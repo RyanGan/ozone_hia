@@ -7,7 +7,24 @@ output: html_document
 
 ## Purpose of Document
 
-Contains code use
+Contains code and results for the health impact assessment (aka burden assement) of child asthma emergency department (ED) visits that may be attributed to wildfire-generated ozone (WFO~3~).
+
+The general HIA/BA formula is as follows:
+
+$\Delta y = y_{o} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk$
+
+We modified it to a daily estimate as our mean delta ozone for a state was on a given smoky day.
+Daily HIA/BA formula:
+
+$\Delta y = \frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk$
+
+We further modified it to account for the observed number of smoky days in Brey and Fisher for each state to get an overal period estimate.
+Period HIA/BA formula:
+$\Delta y = [\frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk] \times n smoky days$
+
+And finally, to calculate a proportion of events per 100,000 children at risk:
+$\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}]) \times n smoky days$
+
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
@@ -88,42 +105,45 @@ n <- 10000
 # simulate beta distribution as this estimate applies across all strata
 # using the same beta estimate for all simulations
 beta <- 0.0095
-beta_se<- 0.004
+beta_se <- 0.0042
   
 # distribution of beta
 set.seed(sim_seed)
 beta_distribution <- rnorm(n, mean = beta, sd = beta_se)
 
-# quick checks (looks good 2/14/17)
-# hist(beta_distribution)
+# check on beta distribution
+# ggplot(data = as.data.frame(beta_distribution), aes(x=beta_distribution))+ 
+#   geom_density()
 # 
-# # estimates of RR and 95%CI
+# # check against original estimates
 # exp(as.numeric(quantile(beta_distribution, 0.50, na.rm = T))*10)
 # # 2.5% lower bound
 # exp(as.numeric(quantile(beta_distribution, 0.025, na.rm = T))*10)
 # # 97.5 % upper bound
 # exp(as.numeric(quantile(beta_distribution, 0.975, na.rm = T))*10)
 
-# yo and beta as well as their std errors do not change
-# simulate the distributions outside the loop
-# output the value for alabama since they are the same for each state
-
 
 # strata loop ---
 for(k in 1:length(df_list)){
-  
+
   # set dataframe to loop through  
   # Note: changing name 'data_frame' to 'df_to_loop' 
   # since it's also a function in dplyr
   df_to_loop <- data.frame(df_list[k]) 
   df_name <- names(df_list[k])
 
+  # yo and beta as well as their std errors do not change
+  # simulate the distributions outside the loop
+  # output the value for alabama since they are the same for each state
   # these estimate comes from a meta analysis of the estimate and prev.
   yo_total <- df_to_loop[1,2] 
   yo_se_total <- df_to_loop[1,3] 
 
-  set.seed(sim_seed) # set seed again
   yo_distribution <- rnorm(n, mean = yo_total, sd = yo_se_total)
+
+  # yo check  
+  # ggplot(data = as.data.frame(yo_distribution), aes(x=yo_distribution))+ 
+  #   geom_density()
   
   # create an empty matrix to populate with state specific median and bounds
   hia_matrix <- matrix(data=NA , nrow(df_to_loop), 5) 
@@ -131,18 +151,19 @@ for(k in 1:length(df_list)){
                             "group")
   
   # convert hia_matrix to dataframe
-  hia_df <- hia_daily_df <- data.frame(hia_matrix)
+  hia_prop_df <- hia_df <- hia_daily_df <- data.frame(hia_matrix)
   # duplicate empty df to fill with daily estimates
   
   # assign a group name
-  hia_df[,5] <- hia_daily_df[,5] <- df_name
+  hia_prop_df[,5] <- hia_df[,5] <- hia_daily_df[,5] <- df_name
   
   # start 2nd loop to run MC for each state ----
   for(i in 1:nrow(df_to_loop)){
-    
+
     # feed state name in to hia dataframe
     hia_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     hia_daily_df[[i, 1]] <- as.character(df_to_loop[i, 1])
+    hia_prop_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     
     # Now I need to simulate the distributions for population at risk and 
     # output the state-specific pop_at_risk values
@@ -167,12 +188,14 @@ for(k in 1:length(df_list)){
     delta_y_daily <- vector("double", length = n)
     # period
     delta_y <- vector("double", length = n)
+    # period proportion
+    prop_y <- vector("double", length = n)
     
     # beginning of inner loop to estimate n interations of HIA formula ----
     for(j in 1:n) {
       # take one random value with replacement from the ED_rate distribution
       # divide by 365 to estimate daily rate
-      est_y0 <- (sample(yo_distribution, 1, replace = T))/365
+      est_yo <- (sample(yo_distribution, 1, replace = T))/365
       # take one random value from the beta distribution with replacement
       est_beta <- sample(beta_distribution, 1, replace = T)
       # take one random value from the ozone distribution with replacement
@@ -189,13 +212,16 @@ for(k in 1:length(df_list)){
       # from the monte carlo vector
       
       # average daily estimate
-      delta_y_daily[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)
+      delta_y_daily[[j]] <- (est_yo*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)
       # average period estimate
-  delta_y[[j]] <- (est_y0*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
+      delta_y[[j]] <- (est_yo*(1-exp((-est_beta)*(est_delta_o3)))*pop_at_risk)*est_smoky_days
+      
+      # adding a new formula to calculate the delta y proportion 
+      # that may be due to wfo3 
+      prop_y[[j]] <- (est_yo*(1-exp((-est_beta)*(est_delta_o3))))*est_smoky_days
 
     } # end of inner loop of HIA estimate
     
-
     # now calculate the median value of delta y and fill in dataframes
     # daily estimates ----
     hia_daily_df[[i, 2]] <- as.numeric(quantile(delta_y_daily, 0.50, na.rm = T))
@@ -211,6 +237,12 @@ for(k in 1:length(df_list)){
     # 97.5 % upper bound
     hia_df[[i, 4]] <- as.numeric(quantile(delta_y, 0.975, na.rm = T))
     
+    # smoke period for proportion estimates ----
+    hia_prop_df[[i, 2]] <- as.numeric(quantile(prop_y, 0.50, na.rm = T))
+    # 2.5% lower bound
+    hia_prop_df[[i, 3]]<- as.numeric(quantile(prop_y, 0.025, na.rm = T))
+    # 97.5 % upper bound
+    hia_prop_df[[i, 4]] <- as.numeric(quantile(prop_y, 0.975, na.rm = T))
     
   } # end state specific
   
@@ -230,10 +262,18 @@ us_estimate <- cbind("state_sum", sum(hia_df[,2]), sum(hia_df[,3]),
   sum(hia_df[,4]), df_name) 
 # assign same column name
 colnames(us_estimate) <- colnames(hia_df)
-  
 # bind US estimate to full dataframe
 hia_df <- rbind(hia_df, us_estimate)
   
+# proportion ----
+# add a final sum of each column to get a U.S. estimate
+us_estimate <- cbind("state_sum", sum(hia_prop_df[,2]), sum(hia_prop_df[,3]),
+  sum(hia_prop_df[,4]), df_name) 
+# assign same column name
+colnames(us_estimate) <- colnames(hia_prop_df)
+# bind US estimate to full dataframe
+hia_prop_df <- rbind(hia_prop_df, us_estimate)
+
 # create environment dataframe with name of original dataset hia is based off
 # period estimates
 hia_p_name <- paste(df_name, 'hia_period', sep = '_')
@@ -248,6 +288,14 @@ assign(hia_d_name, hia_daily_df)
 #write_path <- paste('./data/mc_estimates/', hia_d_name, '.csv', sep = '')
 #write_csv(hia_daily_df, write_path)
 
+# period proportion estimates
+hia_pr_name <- paste(df_name, 'hia_prop', sep = '_')
+assign(hia_pr_name, hia_prop_df)
+# write permanent dataset
+#write_path <- paste('./data/mc_estimates/', hia_pr_name, '.csv', sep = '')
+#write_csv(hia_prop_df, write_path)
+
+
 }
 
 # end dataframe specific loop
@@ -260,6 +308,7 @@ assign(hia_d_name, hia_daily_df)
 
 
 ```
+
 
 ## Asthma Burden: \(\Delta \) Emergency Department Visits 
 
@@ -374,9 +423,9 @@ daily_plot
 
 ### Daily Map
 
-This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
+This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore we were not able to estimate for those states. 
 
-### Note for Jake: I noticed Alabama doesn't have estimates for Whites, but it does have estimates for Blacks and Hispanics. This seems a bit odd and should be checked.
+### Note:Alabama doesn't have estimates for Whites.
 
 ```{r daily map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
@@ -543,7 +592,6 @@ period_plot
 
 This is the small multiples map of the median overall \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
 
-### Note for Jake: I noticed Alabama doesn't have estimates for Whites, but it does have estimates for Blacks and Hispanics. This seems a bit odd and should be checked.
 
 ```{r period map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
@@ -601,6 +649,72 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 period_map
 
 ```
+
+## \(\Delta \) Emergency Department Visits over Population at Risk Maps
+
+I did some simulations in a markdown file to test out this concept and I believe it can be thought of in a similar way to incidence proportion. It's actually closest in estimation to the attributable risk differece between exposed and unexposed. The HIA/BA formula can be modified by simply removing the term for population at risk. The calculated proportion is very small, so I think we'll multiply it by 100,000 children (like Jake originally did). I don't know the best way to phrase it, but I would probably call this something like estimated number of emergency department visits per 100,000 children with asthma that may attributed to WFO~3~. I did not estimate proportion every day, but only over the entire period (wouldn't be too hard to add daily though). 
+
+### Small Multiples Per 100,000 Map 
+
+```{r per 100k map, message = F, warning=F, echo = F, results='asis'}
+# I need to create a similar dataframe for small multiples as before, but I
+# need to preserve the lowercase state names to merge
+# small multiples plot
+prop_df <- rbind(total_hia_prop, female_hia_prop, male_hia_prop,
+                  white_hia_prop, black_hia_prop, hisp_hia_prop) %>% 
+  filter(state != "state_sum") %>% 
+  # capitalize first letter of each state
+  mutate(state2 = gsub("(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2", 
+                      state, perl=TRUE),
+         median = as.numeric(median)*100000,
+         lower_bound = as.numeric(lower_bound),
+         upper_bound = as.numeric(upper_bound),
+         group2 = ifelse(group == "total", "Total",
+                  ifelse(group == "female", "Female",
+                  ifelse(group == "male", "Male",
+                  ifelse(group == "white", "White",
+                  ifelse(group == "black", "Black",
+                  ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
+  select(-group, -lower_bound, -upper_bound) %>% 
+  # I don't want group as there is a group in spatial map
+  rename(strata = group2) 
+
+# create maps using ggplot2 ----
+state_map_df <- map_data("state")
+
+# merge median values to statemap
+state_vals_map_df <- state_map_df %>% 
+  full_join(prop_df, by = c("region" = "state")) %>% 
+  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
+  filter(!is.na(strata))
+
+# preserve order of strata (groups)
+state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
+  levels = unique(as.character(state_vals_map_df$strata)))
+
+prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
+  # outline of states
+  geom_path() +
+  # fill with median value of delta y
+  geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
+  scale_fill_gradient(expression("ED Visits per \n100k Children \nwith Asthma"), 
+                      low = '#2c7bb6', high = '#d7191c', 
+                      guide = guide_legend(title.position = "top", order = 1)) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  facet_wrap(~strata) + 
+  theme(panel.background = element_rect(fill = 'white', colour = 'black'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # strip element
+    strip.background = element_rect(colour=NA, fill=NA),
+    panel.border = element_rect(fill = NA, color = "black"))
+
+prop_map
+
+```
+
+
 
 
 ### Notes: 
