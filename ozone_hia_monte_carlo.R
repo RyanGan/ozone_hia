@@ -328,8 +328,7 @@ period_df <- rbind(total_hia_period, female_hia_period, male_hia_period,
                   ifelse(group == "black", "Black",
                   ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
   select(-group) %>% 
-  rename(group = group2) %>% 
-  select(group, median, lower_bound, upper_bound)
+  rename(group = group2) 
 
 # write permanent file
 write_csv(period_df, "./data/mc_estimates/mc_period.csv")
