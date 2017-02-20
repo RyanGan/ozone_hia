@@ -1,0 +1,288 @@
+---
+title: "What's the point of an HIA?"
+author: "Ryan_Gan"
+date: "February 16, 2017"
+output: html_document
+---
+
+```{r library, message=F}
+library(tidyverse)
+library(broom)
+```
+
+## Document purpose
+
+To explore how the Health Impact Assessment/Burden Assessment formula is supposed to work. In theory, it can be used to estimate the impact of a pollutant/policy on population health in the form of an estimated count of outcomes that may be due to that pollutant/policy (assuming a causal relationship) using information from existing sources and without having to undertake a study to specifically answer the question.
+
+Going to start with a simulated 'true' association for a binary outcome.
+
+```{r population simulation, message=F}
+# simulation population data ----
+set.seed(987)
+pop_data <- data_frame(x = rep(seq(from = 1, to = 100, by =1), 100)) %>% 
+  arrange(x) %>%  # sort x by ascending values
+  cbind(y = rep(seq(from = 1, to = 100, by =1), 100)) %>% 
+  # create randomly assigned proportion of disease
+  mutate(exposure = rbinom(10000, size = 1, prob = 0.5),
+         exp_yn = ifelse(exposure == 1, "Yes", "No"))
+
+
+# finding the formula of the baseline disease probability I want
+# 1/(1+exp(-(-3.6 + 0.69))) 
+# logit relationship between dis and exp
+logit_form = -3.33 + 0.69*pop_data$exposure # linear combination with a bias
+# define probability of disease given formula
+pr = 1/(1+exp(-logit_form))   
+
+# simulate disease
+pop_data <- pop_data %>% 
+  cbind(disease = rbinom(10000, size = 1, prob = pr)) %>% 
+  mutate(dis_yn = ifelse(disease == 1, "Yes", "No"),
+         # make 4 category exposure/disease variable
+         exp_dis = as.factor(
+                   ifelse(exposure == 0 & disease == 0, "Exp = N, Dis = N",
+                   ifelse(exposure == 0 & disease == 1, "Exp = N, Dis = Y",
+                   ifelse(exposure == 1 & disease == 0, "Exp = Y, Dis = N",
+                   ifelse(exposure == 1 & disease == 1, "Exp = Y, Dis = Y", 
+                          NA))))))
+
+```
+
+In the simulation above, I've created a binary exposure with a distribution in the population of roughly 50%. I then defined the exposure/response relationship to be an odds ratio of ~2.00 (or a beta of 0.69). Also, the baseline proportion of disease in this population is ~0.05 or 5%. Below are our estimates of 'truth'.
+
+Contigency table of simulated data by exposure/disease status.
+
+```{r 2x2 table, message=F}
+xtabs(~exposure + disease, pop_data)
+```
+
+Proportion of disease in population (analagous to y~o~ in formula).
+
+```{r incidence proportion of disease, message = F}
+mean(pop_data$disease)
+```
+
+Odds ratio and \beta for the relationshi (same \beta used in formula). Estimates just as we defined.
+
+```{r beta calcs, message = F}
+# hand calc of odds ratio 
+(340/4629)/(161/4870)
+# and beta
+log((340/4629)/(161/4870))
+
+# logistic regression beta
+logit_mod <- tidy(glm(disease~exposure, data = pop_data, family = "binomial"(link="logit")))
+logit_mod
+
+# odds ratio
+exp(logit_mod[2,2])
+
+# relative risk ratio
+# logistic regression beta
+riskratio_mod <- tidy(glm(disease~exposure, data = pop_data, family = "poisson"(link="log")))
+riskratio_mod
+
+# risk ratio
+exp(riskratio_mod[2,2])
+```
+
+So now we know the 'true' odds/risk ratio and \beta. We can also calculate the 'true' attributable risk difference and even a count of the outcome that is due to exposure.
+
+```{r attrib risk and count, message=F}
+# hand calc risk difference
+(340/(340+4629))-(161/(161+4870))
+
+# risk diff
+# logistic regression beta
+risk_diff_mod <- tidy(glm(disease~exposure, data = pop_data, 
+                          family = "binomial"(link="identity")))
+risk_diff_mod
+
+# count difference (attributed to exposure)
+340-161
+
+```
+
+“The general health impact/burden assesment formula is as follows:
+
+$\Delta y = y_{o} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk$
+
+Let's see if we get the same answers as the 'truth' using the formula. 
+Let $y_{o} = 0.0501$; $-\beta = -0.7983$; $\Delta exposure = 1$; $ pop. at risk = 10,000$
+
+```{r hia estimate using vals, message=F}
+# hia estimate
+yo <- 0.0501*(1-exp(-0.7983*1))*10000 
+yo
+# as a reminder, here is the actual count  
+340-161
+```
+
+Let's see if a Monte-Carlo estimate can capture the 'true' estimate in it's 95% CI bounds. For simplicity, I"m just going to calculate a distribution around baseline population and beta.
+
+```{r mc estimate, message = F}
+# intercept only mod to get SE around incident proportion
+yo_mod <- tidy(glm(disease~ 1, data = pop_data, 
+               family = "binomial"(link="identity")))
+yo_mod
+yo_est <- yo_mod[1,2]
+yo_se <- yo_mod[1,3]
+
+n <- 10000
+# baseline proportion simulation (using normal distribution assumptions)
+yo_distribution <- rnorm(n, mean = yo_est, sd = yo_se)
+# I may want to consider a beta distribution for a probability....
+# luckily no values are below 0 or greater than 1, norm distribution probably okay
+hist(yo_distribution)
+summary(yo_distribution)
+
+# simulating a distribution around the beta estimate (can use the logit_mod)
+logit_mod
+beta_est <- logit_mod[2,2]
+beta_se <- logit_mod[2,3]
+
+beta_distribution <- rnorm(n, mean = beta_est, sd = beta_se)
+# distribution checks
+hist(beta_distribution)
+# check estimates to see if it matches with frequentist calcs of 95%CI
+as.numeric(quantile(beta_distribution, 0.50, na.rm = T))
+# 2.5% lower bound
+as.numeric(quantile(beta_distribution, 0.025, na.rm = T))
+# 97.5 % upper bound
+as.numeric(quantile(beta_distribution, 0.975, na.rm = T))
+
+# run mc estimate of delta y
+# empty vector
+delta_y <- vector("double", length = n)
+
+for(i in 1:n) {
+  # take one random value with replacement from distributions
+  # divide by 365 to estimate daily rate
+  est_y0 <- sample(yo_distribution, 1, replace = T)
+  # take one random value from the beta distribution with replacement
+  est_beta <- sample(beta_distribution, 1, replace = T)
+  # average period estimate
+  delta_y[[i]] <- est_y0*(1-exp((-est_beta)*(1)))*10000
+
+} # end of inner loop of HIA estimate
+
+# now lets see if the 'true' estimate is in the bounds
+# median
+as.numeric(quantile(delta_y, 0.50, na.rm = T))
+# 2.5% lower bound
+as.numeric(quantile(delta_y, 0.025, na.rm = T))
+# 97.5 % upper bound
+as.numeric(quantile(delta_y, 0.975, na.rm = T))
+
+# truth 
+340-161
+
+# naw, still high 
+# this is a cat
+# =^o.o^=
+
+# what if we make our confidence even higher to 99%?
+# 0.5% lower bound
+as.numeric(quantile(delta_y, 0.005, na.rm = T))
+# 99.5 % upper bound
+as.numeric(quantile(delta_y, 0.995, na.rm = T))
+
+# a little closer
+
+```
+
+Well, it looks to me the HIA overestimates the 'true' count. Here it looks like we suffer from a type II error, where we missed the 'true' association. By how much, it's hard to tell since this simulated sample size is a bit small. Maybe it works better for larger populations, and small effects like air pollution. If I estimated uncertainty around delta pollutant and population at risk, that may capture the 'true' estimate.
+
+I guess if the point of a HIA/BA is more about policy, then we'd still arrive at a conclusion that the number of outcomes that may be due to exposure is not 0. That's good I guess. 
+
+## Estimated Poportion of Disease
+
+What about calculating a estimated proportion of disease due to exposure? This would be the question of an 'incidence rate'. I believe this should be equal to roughly ~0.03, or attributable risk/risk-difference.
+
+First approach. What if we just divide our estimates we obtained by the population at risk? 
+
+$\frac{\Delta y}{pop. at risk}$
+
+Second approach. Modify the formula. Hopefully they produce roughly the same answer.
+$\frac{\Delta y}{pop. at risk} = y_{o} \times[1-e^{(-\beta \times \Delta exposure)}]$
+
+```{r estimated proportion of disease due to exposure, message = F}
+
+# as a reminder, here is the 'true' risk difference
+# risk diff
+# logistic regression beta
+risk_diff_mod <- tidy(glm(disease~exposure, data = pop_data, 
+                          family = "binomial"(link="identity")))
+risk_diff_mod
+
+
+# first approach where the bounds are divided by our population at risk (10000)
+as.numeric(quantile(delta_y, 0.50, na.rm = T))/10000
+# 2.5% lower bound
+as.numeric(quantile(delta_y, 0.025, na.rm = T))/10000
+# 97.5 % upper bound
+as.numeric(quantile(delta_y, 0.975, na.rm = T))/10000
+# this approach underestimates it.
+
+# slightly modified version of this approach where I divide each estimate from the MC
+
+# mc approach 1.1 ----
+# empty vector
+delta_y <- vector("double", length = n)
+
+for(i in 1:n) {
+  # take one random value with replacement from distributions
+  # divide by 365 to estimate daily rate
+  est_y0 <- sample(yo_distribution, 1, replace = T)
+  # take one random value from the beta distribution with replacement
+  est_beta <- sample(beta_distribution, 1, replace = T)
+  # average period estimate
+  delta_y[[i]] <- (est_y0*(1-exp((-est_beta)*(1)))*10000)/1000
+
+} # end of inner loop of HIA estimate
+
+# median and bounds
+# median
+as.numeric(quantile(delta_y, 0.50, na.rm = T))
+# 2.5% lower bound
+as.numeric(quantile(delta_y, 0.025, na.rm = T))
+# 97.5 % upper bound
+as.numeric(quantile(delta_y, 0.975, na.rm = T))
+
+# roughly the same answer as before
+
+# mc approach 2.0 ----
+# just taking out the baseline population all together
+# empty vector
+delta_y <- vector("double", length = n)
+
+for(i in 1:n) {
+  # take one random value with replacement from distributions
+  # divide by 365 to estimate daily rate
+  est_y0 <- sample(yo_distribution, 1, replace = T)
+  # take one random value from the beta distribution with replacement
+  est_beta <- sample(beta_distribution, 1, replace = T)
+  # average period estimate
+  delta_y[[i]] <- (est_y0*(1-exp((-est_beta)*(1))))
+
+} # end of inner loop of HIA estimate
+
+# median and bounds
+# median
+as.numeric(quantile(delta_y, 0.50, na.rm = T))
+# 2.5% lower bound
+as.numeric(quantile(delta_y, 0.025, na.rm = T))
+# 97.5 % upper bound
+as.numeric(quantile(delta_y, 0.975, na.rm = T))
+
+# same answer. Yay, math! =^O.O^=
+
+```
+
+## Example with a Continuous Predictor
+
+```{r}
+
+
+
+```
