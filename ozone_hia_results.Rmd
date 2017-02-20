@@ -5,6 +5,9 @@ date: "February 14, 2017"
 output: html_document
 ---
 
+# NOTE: yo and std error need to be updated: yo pooled is 0.1067 and pooled se is 0.0047
+# Might as well check population at risk too...
+
 ## Purpose of Document
 
 Contains code and results for the health impact assessment (aka burden assement) of child asthma emergency department (ED) visits that may be attributed to wildfire-generated ozone (WFO~3~).
