@@ -16,28 +16,19 @@ std_err <- c(1.3, 1.7, 1.3, 1.8, 1.3, 1.1, 1.5, 1.6, 1.7)
 
 # Using meta.summaries procedure to pool and estimate the emergency department
 # rate and corresponding standard errors
-pooled_estimates <- meta.summaries(ed_rate, std_err, method = 'exact')
+pooled_estimates <- meta.summaries(ed_rate, std_err, method = 'fixed')
 summary(pooled_estimates)
+
+# pooled estimate
+yo_est <- pooled_estimates$summary
+yo_est
+
+# standard error
+yo_se <- pooled_estimates$se.summary
+yo_se
+
 # smaller varience estiamtes carry more weight.
 # random or exact method doesn't change results.
-
-# Estimates are 10.67 pooled ed rate over this time, with 95% CI of 9.74 - 11.6
-(9.74 - 10.67)/-1.96
-(11.6 - 10.67)/1.96
-
-# std error from meta analysis if 0.474
-
-# Compared to averaging estimate and standard error from 2001 to 2009
-# avg ed rate
-sum(ed_rate)/9
-# avg std error
-sum(std_err)/9
-
-# 95% CI
-# upper
-10.922 + (1.96*1.477)
-# lower
-10.922 - (1.96*1.477)
 
 # Meta analysis estimate is lower than averaged estimate; standard error from 
 # meta analysis is much tighter compared to averaged standard error
