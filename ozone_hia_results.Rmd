@@ -25,14 +25,22 @@ $\Delta y = [\frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}
 And finally, to calculate a proportion of events per 100,000 children at risk:
 $\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}]) \times n smoky days$
 
-*Note: For some reason the national proportion has negatives in it. Need to figure that out.*
+## Estimate Terms
+
+*y~0~:* Baseline pediatric asthma ED visit rate. Came from CDC vital health statistics. Available for most states for multiple years. We pooled state estimates across years using meta-analysis to get pooled estimates and standard errors for each state.
+
+*WFO~3~ and n Smoky Days:* Change in wildfire-generated ozone measured in 1 part per billion. As multiple sites used in Brey and Fischer were present in each state, we again used a meta-analysis to pool ozone estimates and produce a standard error. We averaged the smoky days within a site as Poisson distributions only need a mean (mean = variance). There were a couple (14 I think) monitoring sites that we were not able to assign a state, as the latitude and longitude were likely on coastal areas where the shapefile we used to attempt to find which state it was located in did not have enough resolution (e.g. I think there was a site on an island off the coast of Florida that wasn't assigned a state). I tried a couple things to avoid missingness, but in the interest of time, I just used the code as is.
+
+*Pop at Risk:* This comes from Behavioral Risk Factor Surveillance System data from 2005 to 2014. Reported asthma prevalence (in counts) was available for most states, strata, and years in the study. We used meta-analysis to pool the estimate population at risk across years for each state and strata, as well as produce a standard error around this estimate.
+
+*\Beta:* This has been revised. Beta estimate and standard error now come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
+
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
-#library(ggmap)
 ```
 
-Estimates of ED visit burden in U.S. children with asthma that may be due to exposure to ozone generated from wildfires. Beta estimate and standard error now come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
+Estimates of ED visit burden in U.S. children with asthma that may be due to exposure to ozone generated from wildfires. 
 
 Note: I will need to remove beta and SE from datasets. Yo and beta are now simulated outside the MC so that we draw from the same distribution each time.
 
@@ -314,6 +322,8 @@ Table and map.
 
 ### Table
 
+There are some negative proportions, which shouldn't happen. But I think it's a result of not including population at risk in the HIA. However, to compare across groups/states accounting for population size, I think it works.  
+
 ```{r table prop, message = F, warning=F, echo = F, results='asis'}
 
 prop_df2 <- prop_df %>% 
@@ -328,6 +338,8 @@ knitr::kable(prop_df2, caption = paste0("Table 3: Estimated ED visit per 100k ch
 
 ### Proportion Map
 
+Unlike the table, I set all values < 0 to 0 to avoid confusion.
+
 ```{r proportion map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
 # need to preserve the lowercase state names to merge
@@ -335,7 +347,9 @@ knitr::kable(prop_df2, caption = paste0("Table 3: Estimated ED visit per 100k ch
 prop_df_map <- prop_df %>% 
   filter(state != "state_sum") %>% 
   # I don't want group as there is a group in spatial map
-  rename(strata = group) 
+  rename(strata = group) %>% 
+  mutate(median_100k = ifelse(median_100k < 0, 0, median_100k))
+
 
 # create maps using ggplot2 ----
 state_map_df <- map_data("state")
