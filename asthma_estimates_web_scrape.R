@@ -6,6 +6,7 @@
 
 # load rvest library for web scrapping
 library(rvest)
+library(XML)
 # load rmeta for meta analysis
 library(rmeta)
 
@@ -15,6 +16,7 @@ library(rmeta)
 #    each state for all the years available
 # 3. Run meta-analysis for all US then each US to get a pooled estimate and se
 
+
 # state list
 state_name <- c("AL", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA",
            "ID", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI",
@@ -22,84 +24,83 @@ state_name <- c("AL", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA",
            "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN",
            "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "US")
 
-year <- c("2013", "2012", "2011", "2010", "2009", "2008", "2007", "2006", "2005")
+year <- c("2014", "2013", "2012", "2011", "2010", "2009", 
+          "2008", "2007", "2006", "2005")
 
 # create empty dataframe
 yearly_prev_se_est <- data.frame()
-
-# for (i in 1:length(year)){
-# 
-# year_var <- replicate(length(state_abbrev), year[i])
-# prev_n_est <- replicate(length(state_abbrev), NA)
-# prev_se_est <- replicate(length(state_abbrev), NA)
-# 
-# df <- data.frame(year_var, state_name, prev_n_est, prev_se_est)
-# 
-# yearly_prev_se_est <- rbind(yearly_prev_se_est, df)
-# 
-# }
-# create an empty dataframe to fill with prevalence n and se 
 
 
 # Loop to scrape CDC BRFSS for childhood asthma prevalences --------------------
 
 # list of BRFSS URLs to loop through (05 - 10 has slightly different name)
-year_url <- c("2013/child", "2012/child", "2011/child", "2010/child/current", 
-              "09/child/current", "08/child/current", "07/child/current", 
-              "06/child/current", "05/child/current")
+year_url <- c("2014/child", "2013/child", "2012/child", "2011/child", 
+              "2010/child/current", "09/child/current", "08/child/current", 
+              "07/child/current", "06/child/current", "05/child/current")
 
 for(j in 1:length(year_url)){
 
-# define URL path for current asthma prev tables
-url <- paste("http://www.cdc.gov/asthma/brfss/", year_url[j], "/tableC1.htm",
-             sep = "")
-
-# Use rvest package to extract the table
-asthma_html <- url %>% read_html() %>% 
-  html_nodes('table') %>% 
-  html_table(fill = T, header = T, dec = '.')
-
-# convert html table to data.frame
-asthma_table <- data.frame(asthma_html) 
-# exclude Puerto Rico, Alaska, and Hawaii
-asthma_table <- subset(asthma_table, State != "PR" & State != "Territories"
-                       & State != "Territory" & State != "HI" & State != "AK")
-
-# output estimate names
-state <- unlist(asthma_table$State)
-# Replace 'Total **' with 'US' label
-state[1] <- "US"
-
-# I want the prevalence in estimated numbers
-# subset prevalence number
-prev_n_est <- unlist(asthma_table$Prevalence.Number.)
-prev_n_est <- as.numeric(gsub(",", "", prev_n_est)) # seperate out commas
-
-# split the confidence bounds by '-'
-bounds <- unlist(strsplit(asthma_table$X95..CI...Number., split = "-"))
-bounds
-
-# subset out lower bound vector and convert to numeric
-lower <- bounds[c(T,F)]
-lower # i need to escape left '(', need '\\('
-count_95lower <- as.numeric(gsub(",", "", (gsub("\\(", " ", lower)))) 
-# subset out upper bound vector and convert to numeric
-upper <- bounds[c(F,T)]
-count_95upper <- as.numeric(gsub(",", "", (gsub(")", "", upper))))
-
-# replicate year length of times state is repeated
-year_var <- replicate(length(state), year[j])
-
-state_prev_counts <- data.frame(year_var, state, prev_n_est, 
-                                count_95lower, count_95upper)
-# calculate SE for each (might not be exact as BRFSS likely uses weights for their SE)
-state_prev_counts$prev_se_est <- (state_prev_counts$count_95upper - 
-                                    state_prev_counts$prev_n)/1.96
-
-
-yearly_prev_se_est <- rbind(yearly_prev_se_est, state_prev_counts)
+  # define URL path for current asthma prev tables
+  url <- paste("http://www.cdc.gov/asthma/brfss/", year_url[j], "/tableC1.htm",
+               sep = "")
+  
+  # Use rvest package to extract the table
+  asthma_html <- url %>% read_html() %>% 
+    html_nodes('table') %>% 
+    html_table(fill = T, header = T, dec = '.')
+  
+  # convert html table to data.frame
+  asthma_table <- data.frame(asthma_html) 
+  # exclude Puerto Rico, Alaska, and Hawaii
+  asthma_table <- subset(asthma_table, State != "PR" & State != "Territories"
+                         & State != "Territory" & State != "HI" & State != "AK")
+  
+  # output estimate names
+  state <- unlist(asthma_table$State)
+  # Replace 'Total **' with 'US' label
+  state[1] <- "US"
+  
+  # I want the prevalence in estimated numbers
+  # subset prevalence number (2014 has a slightly different name on webscrape)
+    if(j == 1){
+      prev_n_est <- unlist(asthma_table$Prevalence..Number.)
+    } else {
+      prev_n_est <- unlist(asthma_table$Prevalence.Number.) } # end if else
+  
+  prev_n_est <- as.numeric(gsub(",", "", prev_n_est)) # seperate out commas
+  
+  # split the confidence bounds by '-'
+  # same issue as before. name differs slightly by table year
+    if(j == 1){
+    bounds <- unlist(strsplit(asthma_table$X95..CI....Number., split = "-")) 
+    } else {  
+    bounds <- unlist(strsplit(asthma_table$X95..CI...Number., split = "-")) } 
+  
+  
+  # subset out lower bound vector and convert to numeric
+  lower <- bounds[c(T,F)]
+  lower # i need to escape left '(', need '\\('
+  count_95lower <- as.numeric(gsub(",", "", (gsub("\\(", " ", lower)))) 
+  # subset out upper bound vector and convert to numeric
+  upper <- bounds[c(F,T)]
+  count_95upper <- as.numeric(gsub(",", "", (gsub(")", "", upper))))
+  
+  # replicate year length of times state is repeated
+  year_var <- replicate(length(state), year[j])
+  
+  state_prev_counts <- data.frame(year_var, state, prev_n_est, 
+                                  count_95lower, count_95upper)
+  # calculate SE for each 
+  # might not be exact as BRFSS likely uses weights for their SE
+  # but should be close due to large sample size
+  state_prev_counts$prev_se_est <- (state_prev_counts$count_95upper - 
+                                      state_prev_counts$prev_n)/1.96
+  
+  
+  yearly_prev_se_est <- rbind(yearly_prev_se_est, state_prev_counts)
 
 }
+
 
 summary(yearly_prev_se_est) # dataframe of state prevalence and se estimates
 
@@ -118,7 +119,7 @@ us_state_meta_results <- data.frame(state_list, state_est_count, pooled_prev_n,
                                     pooled_se_n)
 
 # I need to subset each strata and the years available to run a meta analysis 
-for(k in 1:45){ # 45 values for states with some prevalence data available
+for(k in 1:length(unique(yearly_prev_se_est$state))){ 
 
   # subset the strata values
   strata_estimates <- subset(yearly_prev_se_est, state == state_list[k])
@@ -141,17 +142,13 @@ for(k in 1:45){ # 45 values for states with some prevalence data available
   
 }
 
+# marinal estimates for each state
 us_state_meta_results
-# Print delaware pooled estimate. Since there is only 1 observation, this pooled
-# value should be the same as the observation. It is
-us_state_meta_results[41,]
-del <- subset(yearly_prev_se_est, state == state_list[41])
-del
 
 # check US estimate
-us_state_meta_results[28, ]
 us <- subset(yearly_prev_se_est, state == "US")
 us
 # meta analysis is the same as produced in the above loop; it's working.
 us_meta <- meta.summaries(us$prev_n_est, us$prev_se_est, method = 'fixed')
 str(us_meta)
+
