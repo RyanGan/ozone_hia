@@ -7,12 +7,12 @@
 
 # libraries ----
 library(RCurl) # pull data from github
-library(tidyverse)
-library(maptools)
-library(sp)
-library(maps)
-library(rmeta)
-library(broom)
+library(tidyverse) # dplyr function
+library(maptools) # spatial
+library(sp) # spatial
+library(maps) # spatial
+library(rmeta) # meta analysis
+
 
 
 # pull ozone estimates from Steve's GitHub page ----
@@ -62,45 +62,59 @@ berk <- data.frame(x = -122, y=40)
 
 latlong2state(berk)
 
-# create a rounded lat lon
-ozone <- ozone %>% mutate(lon2 = round(lon,1),
-                          lat2 = round(lat,1))
-
-summary(ozone)
-
 # Assign states based on lat/lon from Steve's site locations using exact lat/lon
-ozone$state <- latlong2state(pointsDF)
-ozone$state2 <- latlong2state(ozone[c(17,18)])
+ozone$State <- latlong2state(ozone[c(4,5)])
 
-xtabs(~ state + state2, ozone) # some states likely can't be assigned a state since
-# they don't fall in the state polygon as it's not a finest resolution
+summary(as.factor(ozone$State)) # 14 station NAs
 
-# fill in state if missing a value
-ozone <- ozone %>% mutate(new_state = ifelse(is.na(state), state2, state))
-xtabs(~ new_state, ozone)
+# spent too much time trying to figure out how to not miss sites on the coast
+# hard coding state location in for missing state
+# find missing states in ozone df
+state_missing <- ozone %>% filter(is.na(State))
 
-# check states 
-# looks like some states will just be missing unless I have a very detailed
-# shapefile
-summary(as.factor(ozone$new_state)) 
+# view stations missing states
+state_missing[, c(2:5, 16)]
 
-# limit to complete case and calculate standard error for each site
-ozone2 <- ozone %>% select(-lon2, -lat2, -state2, -new_state) %>% 
-  filter(complete.cases(.)) %>% 
+# monitors in cali
+ozone$State[ozone$stationPlotted == "060012004-01"] <- "california"
+ozone$State[ozone$stationPlotted == "060950004-01"] <- "california"
+ozone$State[ozone$stationPlotted == "060950006-01"] <- "california"
+# florida
+ozone$State[ozone$stationPlotted == "120050006-01"] <- "florida"
+ozone$State[ozone$stationPlotted == "121130015-01"] <- "florida"
+ozone$State[ozone$stationPlotted == "121290001-01"] <- "florida"
+# maine
+ozone$State[ozone$stationPlotted == "230050029-01"] <- "maine"
+ozone$State[ozone$stationPlotted == "230090103-01"] <- "maine"
+# louisiana
+ozone$State[ozone$stationPlotted == "280470008-01"] <- "louisiana"
+# texas (don't mess with it)
+ozone$State[ozone$stationPlotted == "480610006-01"] <- "texas"
+ozone$State[ozone$stationPlotted == "481410055-01"] <- "texas"
+ozone$State[ozone$stationPlotted == "481671034-01"] <- "texas"
+ozone$State[ozone$stationPlotted == "482011050-01"] <- "texas"
+# also going to stick the DC monitor in to maryland
+ozone$State[ozone$State == "district of columbia"] <- "maryland"
+
+# oh man. just realized the state FIPS code is the first two digits of the 
+# station id. doh... ceste la vie
+
+summary(as.factor(ozone$State))
+
+# removing alaska site and calculating standard error
+ozone <- ozone %>% filter(!is.na(State)) %>% 
   mutate(std_error = (confInt_upper - differenceOfMeans)/1.96)
-
-summary(ozone2)
 
 
 # meta analysis to pool station estimates ----
 # set up empty matrix
-state_ozone <- matrix(ncol=4, nrow = length(unique(ozone2$state)))
-colnames(state_ozone) <- c("state", "delta_o3", "do3_se", "n_smoky")
+state_ozone <- matrix(ncol=4, nrow = length(unique(ozone$State)))
+colnames(state_ozone) <- c("State", "delta_o3", "do3_se", "n_smoky")
 # convert to dataframe
 state_ozone <- as.data.frame(state_ozone)
 
 # vector of state names
-state_vector <- unique(ozone2$state)
+state_vector <- unique(ozone$State)
 
 
 # state pooled est and std error ----
@@ -109,7 +123,7 @@ for(i in 1:length(state_vector)){
   state_ozone[i,1] <- state_name <- state_vector[i]
   
   # subset ozone dataset to just state
-  state_df <- subset(ozone2, state == state_name)
+  state_df <- subset(ozone, State == state_name)
   
   # meta analysis
   pooled_estimates <- meta.summaries(differenceOfMeans, std_error, 
