@@ -143,7 +143,10 @@ for(k in 1:length(unique(yearly_prev_se_est$state))){
 }
 
 # marinal estimates for each state
-us_state_meta_results
+us_state_meta_results <- us_state_meta_results %>% 
+  # adding in a strata idicator
+  mutate(strata = "marginal")
+
 
 # check US estimate
 us <- subset(yearly_prev_se_est, state == "US")
