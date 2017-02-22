@@ -5,9 +5,6 @@ date: "February 14, 2017"
 output: html_document
 ---
 
-# NOTE: yo and std error need to be updated: yo pooled is 0.1067 and pooled se is 0.0047
-# Might as well check population at risk too...
-
 ## Purpose of Document
 
 Contains code and results for the health impact assessment (aka burden assement) of child asthma emergency department (ED) visits that may be attributed to wildfire-generated ozone (WFO~3~).
@@ -36,16 +33,84 @@ $\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \time
 
 *Pop at Risk:* This comes from Behavioral Risk Factor Surveillance System data from 2005 to 2014. Reported asthma prevalence (in counts) was available for most states, strata, and years in the study. We used meta-analysis to pool the estimate population at risk across years for each state and strata, as well as produce a standard error around this estimate.
 
-*\Beta:* This has been revised. Beta estimate and standard error now come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
+*Beta:* This has been revised. Beta estimate and standard error now come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
 
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
 ```
 
-Estimates of ED visit burden in U.S. children with asthma that may be due to exposure to ozone generated from wildfires. 
 
-Note: I will need to remove beta and SE from datasets. Yo and beta are now simulated outside the MC so that we draw from the same distribution each time.
+
+```{r read data, message = F, warning=F, echo = F}
+daily_df <- read_csv("./data/mc_estimates/mc_daily.csv")
+period_df <- read_csv("./data/mc_estimates/mc_period.csv")
+prop_df <- read_csv("./data/mc_estimates/mc_prop_100k.csv")
+state_ozone <- read_csv("./data/state_delta_o3.csv")
+hia_input <- read_csv("./data/state_strata_hia_estimates.csv")
+```
+
+
+Estimates of ED visit burden in U.S. children with asthma that may be due to exposure to ozone associated with smoke from wildfires. 
+
+## Maps of State Ozone Associated with Wildfire Smoke
+
+### Daily \(\Delta \) Ozone Map 
+
+```{r ozone map, message = F, warning=F, echo = F, results='asis'}
+# create maps using ggplot2 ----
+state_map_df <- map_data("state")
+
+# merge median values to statemap
+state_vals_map_df <- state_map_df %>% 
+  full_join(state_ozone, by = c("region" = "State")) %>% 
+  filter(!is.na(delta_o3))
+
+
+# ozone map
+ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
+  # outline of states
+  geom_path() +
+  # fill with median value of delta y
+  geom_polygon(data = state_vals_map_df, aes(fill = delta_o3), alpha = 0.7) +
+  scale_fill_gradient(expression(paste(Delta, "O"[3])), high = '#f83600', low = '#00223E',
+                      breaks = c(-2,0,2,4,6,8,10,12,14,16),
+                        guide = guide_legend(title.position = "top", order = 1)) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  theme(panel.background = element_rect(fill = 'white', colour = 'black'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+
+
+ozone_map
+
+```
+
+### Map of State Average Number of Smoky Days (2005-2014)
+
+```{r smoky days, message = F, warning=F, echo = F, results='asis'}
+# smky days map
+smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
+  # outline of states
+  geom_path() +
+  # fill with median value of delta y
+  geom_polygon(data = state_vals_map_df, aes(fill = n_smoky), alpha = 0.7) +
+  scale_fill_gradient("State average \nnumber of \nsmoky days \n2005-2014", low = '#EFEFBB', 
+                      high = '#c21500',
+                      breaks = c(10,20,30,40,50,60,70),
+                        guide = guide_legend(title.position = "top", order = 1)) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  theme(panel.background = element_rect(fill = 'white', colour = 'black'),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+
+
+smoke_days_map
+
+```
+
 
 ## Asthma Burden: \(\Delta \) Emergency Department Visits 
 
@@ -53,13 +118,9 @@ Tables and graphs are for daily and period estimates for each strata of interest
 
 ## Continental U.S. Daily \(\Delta \) Emergency Department Visits
 
-Estimates for the overall burden of asthma were the summed estimates calculated for each state.
+Estimates for the overall burden of asthma were the summed estimates calculated for each state. I've included the strata and state-specific estimate inputs and uncertainty (standard error) for the HIA formula at the very end of this document since it's large.
 
-```{r read data, message = F, warning=F, echo = F}
-daily_df <- read_csv("./data/mc_estimates/mc_daily.csv")
-period_df <- read_csv("./data/mc_estimates/mc_period.csv")
-prop_df <- read_csv("./data/mc_estimates/mc_prop_100k.csv")
-```
+
 
 ```{r daily US estimate, message = F, warning=F, echo = F, results='asis'}
 
@@ -391,5 +452,9 @@ prop_map
 
 Output data as it was used in the document so MC results are the same.
 
-### Notes: 
-Colors on maps could be changed as well as the text size on the line plots (State names are hard to read). Also, we should do a final check of all the inputs going in to the Monte Carlo. Otherwise, things look in order.
+### HIA Input Terms
+
+```{r hia terms,  message = F, warning=F, echo = F, results='asis'}
+knitr::kable(hia_input, caption = paste0("Table 4: HIA term input and standard error",
+             " for each state and strata"))
+```
