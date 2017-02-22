@@ -116,6 +116,14 @@ state_ozone <- as.data.frame(state_ozone)
 # vector of state names
 state_vector <- unique(ozone$State)
 
+# checking texas meta
+texas_ozone <- filter(ozone, State == "texas")
+texas_meta <- meta.summaries(differenceOfMeans, std_error, 
+                             method = "fixed", data = texas_ozone)
+
+texas_ozone
+
+summary(texas_meta)
 
 # state pooled est and std error ----
 for(i in 1:length(state_vector)){
