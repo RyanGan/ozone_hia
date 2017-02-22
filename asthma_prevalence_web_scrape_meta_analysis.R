@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Title: Web-scraping of CDC and BRFSS asthma estimates
 # Author: Ryan Gan
-# Date: 8/31/16
+# Date: 2/21/17
 # ------------------------------------------------------------------------------
 
 # load rvest library for web scrapping
@@ -9,6 +9,7 @@ library(rvest)
 library(XML)
 # load rmeta for meta analysis
 library(rmeta)
+library(tidyverse)
 
 # General process
 # 1. Bring in each BRFSS HTML table
@@ -467,25 +468,44 @@ assign(paste0(race_name[i], "_state_meta_results"), race_state_meta_results)
 
 } # end race strata 
 
+# rename some variables
 marginal_prev_meta_results <- rename(marginal_prev_meta_results, 
-                                     state_count = state_est_count)
-glimpse(marginal_prev_meta_results)
-glimpse(female_state_meta_results)
-glimpse(male_state_meta_results)
-glimpse(white_state_meta_results)
-glimpse(black_state_meta_results)
-glimpse(hispanic_state_meta_results)
+                                     state_count = state_est_count,
+                                     state = state_list)
+# force all states in each dataframe to be character
+marginal_prev_meta_results$state <- as.character(marginal_prev_meta_results$state)
+female_state_meta_results$state <- as.character(female_state_meta_results$state)
+male_state_meta_results$state <- as.character(male_state_meta_results$state)
+white_state_meta_results$state <- as.character(white_state_meta_results$state)
+black_state_meta_results$state <- as.character(black_state_meta_results$state)
+hispanic_state_meta_results$state <- as.character(hispanic_state_meta_results$state)
+
+# merege state lowercase name to abbreviation
+state_lowercase <- tolower(state.name)
+state_abbr <- state.abb
+# create key
+state_key <- as.data.frame(cbind(state_lowercase, state_abbr))
+state_key$state_abbr <- as.character(state_key$state_abbr)
+state_key <- rename(state_key, state = state_lowercase)
 
 # Bind all dataframes of prevalence in to one
 strata_pooled_prev_df <- bind_rows(marginal_prev_meta_results,
   female_state_meta_results, male_state_meta_results, white_state_meta_results,
   black_state_meta_results, hispanic_state_meta_results) %>% 
-  mutate(state = as.factor(state))
+  rename(state_abbr = state,
+         pop_at_risk = pooled_prev_n,
+         par_se = pooled_se_n) %>% 
+  # set DC to MD
+  mutate(state_abbr = ifelse(state_abbr == "DC", "MD", state_abbr)) %>% 
+  # join state names to abbreviations
+  full_join(state_key, by = "state_abbr") %>% 
+  select(state, strata, pop_at_risk, par_se) %>% 
+  filter(complete.cases(.))
 
-# i want to join state names to the dataframe.
-
-
-# forces factors to character. That's okay.
+# check dataframe
 glimpse(strata_pooled_prev_df)
+summary(strata_pooled_prev_df)
 
-xtabs(~state, strata_pooled_prev_df)
+# output dataframe
+write_csv(strata_pooled_prev_df, "./data/state_strata_pop_at_risk.csv")
+
