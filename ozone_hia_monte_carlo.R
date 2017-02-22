@@ -8,66 +8,7 @@
 library(tidyverse)
 
 # data read ----
-
-# read smoky days df
-ozone_path <- paste0('./data/state_delta_o3.csv')
-ozone  <- read_csv(ozone_path) %>% rename(State = state)
-
-# start with one loop first of the marginal state-specific estimates
-marginal_path <- paste0('./data/total.csv')
-# import csv and make sure variables as numeric like they should be
-marginal <- read_csv(marginal_path, col_types = "cdddddddd", na = "NA") 
-
-# read in african american df
-black_path <- paste0('./data/Black.csv')
-black <- read_csv(black_path, col_types = "cdddddddd", na = "NA")
-
-
-# hispanic
-hisp_path <- paste0('./data/Hispanic.csv')
-hisp <- read_csv(hisp_path, col_types = "cdddddddd", na = "NA") 
-
-
-# white
-white_path <- paste0('./data/White.csv')
-white <- read_csv(white_path, col_types = "cdddddddd", na = "NA") 
-
-
-# male
-m_path <- paste0('./data/Male.csv')
-male <- read_csv(m_path, col_types = "cdddddddd", na = "NA") 
-
-# female
-f_path <- paste0('./data/Female.csv')
-female <- read_csv(f_path, col_types = "cdddddddd", na = "NA")
-
-
-# create a list of dataframes to cycle through
-df_list <- list(marginal=marginal, male=male, female=female, black=black, 
-                hisp=hisp, white=white)
-
-df_name <- c('marginal', 'male', 'female', 'black', 'hisp', 'white')
-
-df_list[1]
-
-# join smokey days df to each dataframe
-for(q in 1:length(df_list)){
-  
-  # loop through df list and remove old delta ozone and beta smoky
-  data_join_df <- df_list[[q]] %>% 
-    select(-delta_o3, -do3_se, -beta, -beta_se) %>% 
-    full_join(ozone, by = "State") %>% filter(complete.cases(.))
-  # rename original df lists to contain smoky days val
-  assign(names(df_list[q]), data_join_df)
-}
-
-# re-create list of dataframes to cycle through now that it has smoke days
-df_list <- list(marginal=marginal, male=male, female=female, black=black, 
-                hisp=hisp, white=white)
-# check out first element of list to make sure smoky days variable is there
-# df_list[1]
-
-
+hia_estimates_df <- read_csv("./data/state_strata_hia_estimates.csv")
 
 # Estimates of ED visit burden in U.S. children with asthma that may be due to 
 # exposure to ozone generated from wildfires. Beta estimate and standard error 
@@ -112,28 +53,34 @@ beta_distribution <- rnorm(n, mean = beta, sd = beta_se)
 # # 97.5 % upper bound
 # exp(as.numeric(quantile(beta_distribution, 0.975, na.rm = T))*10)
 
+# output strata to subset
+strata_list <- unique(hia_estimates_df$strata)[1:6]
+strata_list
 
 # strata loop ---
-for(k in 1:length(df_list)){
-  
+for(k in 1:length(strata_list)){
+
   # set dataframe to loop through  
   # Note: changing name 'data_frame' to 'df_to_loop' 
   # since it's also a function in dplyr
-  df_to_loop <- data.frame(df_list[k]) 
-  df_name <- names(df_list[k])
+  df_to_loop <- hia_estimates_df %>% filter(strata == strata_list[k]) %>% 
+    filter(complete.cases(.))
   
+  df_name <- strata_list[k]
+  
+  head(df_to_loop)
   # yo and beta as well as their std errors do not change
   # simulate the distributions outside the loop
   # output the value for alabama since they are the same for each state
   # these estimate comes from a meta analysis of the estimate and prev.
-  yo_marginal <- df_to_loop[1,2] 
-  yo_se_marginal <- df_to_loop[1,3] 
+  yo_marginal <- as.numeric(df_to_loop[1,8]) 
+  yo_se_marginal <- as.numeric(df_to_loop[1,9]) 
   
   yo_distribution <- rnorm(n, mean = yo_marginal, sd = yo_se_marginal)
   
   # yo check  
   # ggplot(data = as.data.frame(yo_distribution), aes(x=yo_distribution))+ 
-  #   geom_density()
+  # geom_density()
   
   # create an empty matrix to populate with state specific median and bounds
   hia_matrix <- matrix(data=NA , nrow(df_to_loop), 5) 
@@ -149,7 +96,7 @@ for(k in 1:length(df_list)){
   
   # start 2nd loop to run MC for each state ----
   for(i in 1:nrow(df_to_loop)){
-
+ 
     # feed state name in to hia dataframe
     hia_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     hia_daily_df[[i, 1]] <- as.character(df_to_loop[i, 1])
@@ -157,19 +104,19 @@ for(k in 1:length(df_list)){
     
     # Now I need to simulate the distributions for population at risk and 
     # output the state-specific pop_at_risk values
-    state_par_val <- df_to_loop[i, 4] 
-    state_par_se <- df_to_loop[i, 5] 
+    state_par_val <- as.numeric(df_to_loop[i, 3]) 
+    state_par_se <- as.numeric(df_to_loop[i, 4]) 
     # create state-specific pop at risk distribution
     state_par_distribution <- rnorm(n, mean = state_par_val, sd = state_par_se)
     
     # output the state-specific delta ozone values
-    state_delta_o3 <- df_to_loop[i, 6]
-    state_do3_se <- df_to_loop[i, 7]
+    state_delta_o3 <- as.numeric(df_to_loop[i, 5])
+    state_do3_se <- as.numeric(df_to_loop[i, 6])
     # create state-specific o3 distribution
     state_o3_distribution <- rnorm(n, mean = state_delta_o3, sd = state_do3_se)
     
     # output the state-specific n smoke days value
-    state_smk_d_n <- df_to_loop[i, 8]
+    state_smk_d_n <- as.numeric(df_to_loop[i, 7])
     # create state_specific smoke days Poisson dist
     state_smoky_days_distribution <- rpois(n, state_smk_d_n)
     
@@ -300,7 +247,7 @@ for(k in 1:length(df_list)){
 # create a dataframe with all strata estimates and bind rows for 
 # small multiples plot
 daily_df <- rbind(marginal_hia_daily, female_hia_daily, male_hia_daily,
-                  white_hia_daily, black_hia_daily, hisp_hia_daily) %>% 
+                  white_hia_daily, black_hia_daily, hispanic_hia_daily) %>% 
   # capitalize first letter of each state
   mutate(median = as.numeric(median),
          lower_bound = as.numeric(lower_bound),
@@ -310,7 +257,7 @@ daily_df <- rbind(marginal_hia_daily, female_hia_daily, male_hia_daily,
          ifelse(group == "male", "Male",
          ifelse(group == "white", "White",
          ifelse(group == "black", "Black",
-         ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
+         ifelse(group == "hispanic", "Hispanic", NA))))))) %>% 
   select(-group) %>% 
   rename(group = group2) 
 
@@ -319,7 +266,7 @@ write_csv(daily_df, "./data/mc_estimates/mc_daily.csv")
 
 # study period 2005-2014 dataframe ----
 period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
-  white_hia_period, black_hia_period, hisp_hia_period) %>% 
+  white_hia_period, black_hia_period, hispanic_hia_period) %>% 
   # capitalize first letter of each state
   mutate(median = as.numeric(median),
          lower_bound = as.numeric(lower_bound),
@@ -329,7 +276,7 @@ period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
                   ifelse(group == "male", "Male",
                   ifelse(group == "white", "White",
                   ifelse(group == "black", "Black",
-                  ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
+                  ifelse(group == "hispanic", "Hispanic", NA))))))) %>% 
   select(-group) %>% 
   rename(group = group2) 
 
@@ -338,7 +285,7 @@ write_csv(period_df, "./data/mc_estimates/mc_period.csv")
 
 # proportion dataframe ----
 prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
-                 white_hia_prop, black_hia_prop, hisp_hia_prop) %>% 
+                 white_hia_prop, black_hia_prop, hispanic_hia_prop) %>% 
   # capitalize first letter of each state
   mutate(median = as.numeric(median),
          lower_bound = as.numeric(lower_bound),
@@ -351,7 +298,7 @@ prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
                   ifelse(group == "male", "Male",
                   ifelse(group == "white", "White",
                   ifelse(group == "black", "Black",
-                  ifelse(group == "hisp", "Hispanic", NA))))))) %>% 
+                  ifelse(group == "hispanic", "Hispanic", NA))))))) %>% 
   select(-group) %>% 
   rename(group = group2)
 
