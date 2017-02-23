@@ -453,6 +453,7 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 prop_map
 
+
 ```
 
 Output data as it was used in the document so MC results are the same.
