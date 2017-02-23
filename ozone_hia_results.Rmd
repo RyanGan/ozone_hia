@@ -38,6 +38,7 @@ $\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \time
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
+library(scales)
 ```
 
 
@@ -57,6 +58,8 @@ Estimates of ED visit burden in U.S. children with asthma that may be due to exp
 
 ### Daily \(\Delta \) Ozone Map 
 
+Elevated ozone associated with smoke.
+
 ```{r ozone map, message = F, warning=F, echo = F, results='asis'}
 # create maps using ggplot2 ----
 state_map_df <- map_data("state")
@@ -66,16 +69,18 @@ state_vals_map_df <- state_map_df %>%
   full_join(state_ozone, by = c("region" = "State")) %>% 
   filter(!is.na(delta_o3))
 
+# summary(state_vals_map_df$delta_o3)
 
 # ozone map
 ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # outline of states
   geom_path() +
   # fill with median value of delta y
-  geom_polygon(data = state_vals_map_df, aes(fill = delta_o3), alpha = 0.7) +
-  scale_fill_gradient(expression(paste(Delta, "O"[3])), high = '#f83600', low = '#00223E',
-                      breaks = c(-2,0,2,4,6,8,10,12,14,16),
-                        guide = guide_legend(title.position = "top", order = 1)) +
+  geom_polygon(data = state_vals_map_df, aes(fill = delta_o3), alpha = 0.8) +
+  scale_fill_gradientn("EOAS", 
+                       colours = c("#0a1d5c","#1e9ed9", "red"),
+                       values = rescale(c(-3, 0, 15)),
+                       limits=c(-3, 15)) +
   xlab("Longitude") +
   ylab("Latitude") +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -87,19 +92,22 @@ ozone_map
 
 ```
 
-### Map of State Average Number of Smoky Days (2005-2014)
+### Map of State Average Number of Smoke-Affected Days (2005-2014)
+
+Smoke-affected days.
 
 ```{r smoky days, message = F, warning=F, echo = F, results='asis'}
+
 # smky days map
 smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # outline of states
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = n_smoky), alpha = 0.7) +
-  scale_fill_gradient("State average \nnumber of \nsmoky days \n2005-2014", low = '#EFEFBB', 
-                      high = '#c21500',
-                      breaks = c(10,20,30,40,50,60,70),
-                        guide = guide_legend(title.position = "top", order = 1)) +
+  scale_fill_gradientn("State Average Number of \nSmoke-Affected Days \n 2005-2014", 
+                      colours = c('#cfffdb', '#018c65', '#0d1469'),
+                      values = rescale(c(10, 30, 66)),
+                      limits=c(10, 66)) +
   xlab("Longitude") +
   ylab("Latitude") +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -185,7 +193,7 @@ daily_plot <- ggplot(daily_df2, aes(x = state, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("State") +
-  ylab(expression(paste(Delta, "y Emergency Department Visit"))) +
+  ylab(expression(paste("Smoke-Affected Day ", Delta, "y Emergency Department Visit"))) +
   coord_flip() +
   facet_wrap(~group) +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -233,8 +241,7 @@ daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
-  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c', 
-                      guide = guide_legend(title.position = "top", order = 1)) +
+  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -360,8 +367,7 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
-  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c', 
-                      guide = guide_legend(title.position = "top", order = 1)) +
+  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -434,8 +440,7 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median_100k), alpha = 0.7) +
   scale_fill_gradient(expression("ED Visits per \n100k Children \nwith Asthma"), 
-                      low = '#2c7bb6', high = '#d7191c', 
-                      guide = guide_legend(title.position = "top", order = 1)) +
+                      low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
