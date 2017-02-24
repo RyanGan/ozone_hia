@@ -78,7 +78,7 @@ ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = delta_o3), alpha = 0.8) +
   scale_fill_gradientn("EOAS", 
-                       colours = c("#0a1d5c","#1e9ed9", "red"),
+                       colours = c("#0a1d5c","#4B1248", "#F0C27B"),
                        values = rescale(c(-3, 0, 15)),
                        limits=c(-3, 15)) +
   xlab("Longitude") +
