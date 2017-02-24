@@ -211,8 +211,6 @@ daily_plot
 
 This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore we were not able to estimate for those states. 
 
-### Note:Alabama doesn't have estimates for Whites.
-
 ```{r daily map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
 # need to preserve the lowercase state names to merge
