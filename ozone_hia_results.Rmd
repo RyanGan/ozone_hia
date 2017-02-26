@@ -45,8 +45,14 @@ library(scales)
 
 ```{r read data, message = F, warning=F, echo = F}
 daily_df <- read_csv("./data/mc_estimates/mc_daily.csv")
+summary(filter(daily_df, group == "Marginal" & state != "state_sum"))
 period_df <- read_csv("./data/mc_estimates/mc_period.csv")
+# add median and IQR summaries to markdown
+summary(filter(period_df, group == "Hispanic" & state != "state_sum"))
+
 prop_df <- read_csv("./data/mc_estimates/mc_prop_100k.csv")
+summary(filter(prop_df, group == "Hispanic" & state != "state_sum"))
+
 state_ozone <- read_csv("./data/state_delta_o3.csv")
 hia_input <- read_csv("./data/state_strata_hia_estimates.csv")
 ```
@@ -64,11 +70,12 @@ Elevated ozone associated with smoke.
 # create maps using ggplot2 ----
 state_map_df <- map_data("state")
 
+summary(state_ozone)
+
 # merge median values to statemap
 state_vals_map_df <- state_map_df %>% 
   full_join(state_ozone, by = c("region" = "State")) %>% 
   filter(!is.na(delta_o3))
-
 # summary(state_vals_map_df$delta_o3)
 
 # ozone map
@@ -87,8 +94,9 @@ ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank())
 
-
 ozone_map
+# save 6 inch by 4 inch
+ggsave("./data/ozone_map.pdf", width = 6, height = 4, units = "in")
 
 ```
 
@@ -104,7 +112,8 @@ smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = n_smoky), alpha = 0.7) +
-  scale_fill_gradientn("State Average Number of \nSmoke-Affected Days \n 2005-2014", 
+  scale_fill_gradientn(paste0("Average Number of \nSmoke-Affected Days",
+                              "\nfor Monitors within a State \nbetween 2005-2014"), 
                       colours = c('#cfffdb', '#018c65', '#0d1469'),
                       values = rescale(c(10, 30, 66)),
                       limits=c(10, 66)) +
@@ -114,8 +123,9 @@ smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank())
 
-
 smoke_days_map
+# smoke map
+ggsave("./data/smoke_days_map.pdf", width = 7, height = 4, units = "in")
 
 ```
 
@@ -163,6 +173,8 @@ daily_us_plot <- ggplot(daily_df2, aes(x = group, y = median)) +
 
 daily_us_plot
 
+ggsave("./data/daily_us_bound_plots.pdf", 
+       width = 6, height = 4, units = "in")
 ```
 
 
@@ -204,6 +216,10 @@ daily_plot <- ggplot(daily_df2, aes(x = state, y = median)) +
     panel.border = element_rect(fill = NA, color = "black"))
 
 daily_plot
+
+# save image (this one needs to be large so states aren't squished)
+ggsave("./data/daily_state_bound_plots.pdf", 
+       width = 12, height = 12, units = "in")
 
 ```
 
@@ -252,6 +268,9 @@ daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 daily_map
 
+# save 6 inch by 4 inch
+ggsave("./data/daily_y_map.pdf", width = 6, height = 4, units = "in")
+
 ```
 
 ## Study Period (2005-2014) \(\Delta \) Emergency Department Visits
@@ -290,6 +309,9 @@ period_us_plot <- ggplot(period_df2, aes(x = group, y = median)) +
     panel.border = element_rect(fill = NA, color = "black"))
 
 period_us_plot
+
+# save 6 inch by 4 inch
+ggsave("./data/us_period_bounds_plot.pdf", width = 6, height = 4, units = "in")
 
 ```
 
@@ -330,6 +352,10 @@ period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
     panel.border = element_rect(fill = NA, color = "black"))
 
 period_plot
+
+# save map (this one needs to be large so states aren't squished)
+ggsave("./data/period_state_bound_plots.pdf", 
+       width = 12, height = 12, units = "in")
 
 ```
 
@@ -377,6 +403,9 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
     panel.border = element_rect(fill = NA, color = "black"))
 
 period_map
+
+# save 6 inch by 4 inch
+ggsave("./data/period_y_map.pdf", width = 6, height = 4, units = "in")
 
 ```
 
@@ -450,7 +479,8 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
     panel.border = element_rect(fill = NA, color = "black"))
 
 prop_map
-
+# save image
+ggsave("./data/proportion_map.pdf", width = 6, height = 4, units = "in")
 
 ```
 
