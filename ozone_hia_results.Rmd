@@ -44,33 +44,63 @@ library(scales)
 
 
 ```{r read data, message = F, warning=F, echo = F}
+# input mc daily estimates
 daily_df <- read_csv("./data/mc_estimates/mc_daily.csv")
-summary(filter(daily_df, group == "Marginal" & state != "state_sum"))
+# input mc period estimates
 period_df <- read_csv("./data/mc_estimates/mc_period.csv")
-# add median and IQR summaries to markdown
-summary(filter(period_df, group == "Hispanic" & state != "state_sum"))
-
+# input mc proportion estimates
 prop_df <- read_csv("./data/mc_estimates/mc_prop_100k.csv")
-summary(filter(prop_df, group == "Hispanic" & state != "state_sum"))
-
+# input ozone vals
 state_ozone <- read_csv("./data/state_delta_o3.csv")
+# read in hia input term dataset
 hia_input <- read_csv("./data/state_strata_hia_estimates.csv")
 ```
 
 
 Estimates of ED visit burden in U.S. children with asthma that may be due to exposure to ozone associated with smoke from wildfires. 
 
-## Maps of State Ozone Associated with Wildfire Smoke
+## Summary Stats and Maps of State Ozone Associated with Wildfire Smoke
 
-### Daily \(\Delta \) Ozone Map 
+### \(\Delta \) Ozone 
 
+#### Summary Statistics
+
+Median and interquartile range (IQR) for states in continental US with ozone estimates.
+
+```{r ozone median and iqr, message = F, warning=F, echo = F, results='asis'}
+
+# make dataframe
+ozone_iqr_df <- as.data.frame(matrix(nrow = 2, ncol = 5))
+# assign variables
+colnames(ozone_iqr_df) <- c("estimate_term", "n_obs", "median", "perc_25", "perc_75")
+
+# var names 
+ozone_iqr_df[1,1] <- "ozone"
+ozone_iqr_df[2,1] <- "smoke_days"
+
+# ozone vals
+ozone_iqr_df[1, 2:5] <- state_ozone %>% 
+  summarise(n_obs = n(), median_o3 = median(delta_o3), 
+            o3_25 = quantile(delta_o3, p = 0.25),
+            o3_75 = quantile(delta_o3, p = 0.75))
+# smoke vals
+ozone_iqr_df[2, 2:5] <- state_ozone %>% 
+  summarise(n_obs = n(), median_smk = median(n_smoky), 
+            smk_25 = quantile(n_smoky, p = 0.25),
+            smk_75 = quantile(n_smoky, p = 0.75))
+
+# table ----
+knitr::kable(ozone_iqr_df, caption = paste0("Table: Median and interquartile ",
+             "range of ozone and smoky days"))
+```
+
+
+#### Map
 Elevated ozone associated with smoke.
 
 ```{r ozone map, message = F, warning=F, echo = F, results='asis'}
 # create maps using ggplot2 ----
 state_map_df <- map_data("state")
-
-summary(state_ozone)
 
 # merge median values to statemap
 state_vals_map_df <- state_map_df %>% 
@@ -150,7 +180,7 @@ daily_df2 <- daily_df %>%
   select(group, median, lower_bound, upper_bound)
 
 # table ----
-knitr::kable(daily_df2, caption = paste0("Table 1: Estimated average daily ED visit burden",
+knitr::kable(daily_df2, caption = paste0("Table: Estimated average daily ED visit burden",
   " that may be due to wildfire-generated ozone"))
 
 # preserve order of group
@@ -180,10 +210,9 @@ ggsave("./data/daily_us_bound_plots.pdf",
 
 ### State-Specific Daily \(\Delta \) Emergency Department Visits
 
-Below are the state-specific figure by state. I didn't print the table because it would be large.
+Summary statistics of median and interquartile range of state median value.
 
-```{r daily table and line graph, message = F, warning=F, echo = F, results='asis'}
-
+```{r daily summary stats, message = F, warning=F, echo = F, results='asis'}
 # Daily estimates -----
 # create a dataframe with all strata estimates and bind rows for 
 # small multiples plot
@@ -198,6 +227,37 @@ daily_df2$state <- factor(daily_df2$state,
 # preserve order of group
 daily_df2$group <- factor(daily_df2$group, 
   levels = unique(as.character(daily_df2$group)))
+
+# create table for summary stats ----
+# make dataframe
+daily_iqr_df <- as.data.frame(matrix(nrow = 6, ncol = 5))
+# assign variables
+colnames(daily_iqr_df) <- c("strata", "n_obs", "median", "perc_25", "perc_75")
+
+# strata names 
+daily_iqr_df[,1] <- unique(daily_df2$group)
+
+# loop to calculate vals
+# ozone vals
+for(i in 1:6){
+
+  daily_iqr_df[i, 2:5] <- daily_df2 %>% 
+    filter(group == as.character(daily_iqr_df[i,1])) %>% 
+    summarise(n_obs = n(), median_val = median(median), 
+              perc_25 = quantile(median, p = 0.25),
+              perc_75 = quantile(median, p = 0.75))
+}
+
+
+# table ----
+knitr::kable(daily_iqr_df, caption = paste0("Table: Median and interquartile ",
+             "range of daily ED visits"))
+
+```
+
+Below are the state-specific figure by state. I didn't print the table because it would be large.
+
+```{r daily table and line graph, message = F, warning=F, echo = F, results='asis'}
 
 # small multiples plot
 daily_plot <- ggplot(daily_df2, aes(x = state, y = median)) +
@@ -287,7 +347,7 @@ period_df2 <- period_df %>%
   select(group, median,lower_bound, upper_bound)
 
 # table ----
-knitr::kable(period_df2, caption = paste0("Table 2: Estimated period ED visit burden",
+knitr::kable(period_df2, caption = paste0("Table: Estimated period ED visit burden",
   " that may be due to wildfire-generated ozone"))
 
 # preserve order of group
@@ -317,9 +377,10 @@ ggsave("./data/us_period_bounds_plot.pdf", width = 6, height = 4, units = "in")
 
 ### State-Specific Period \(\Delta \) Emergency Department Visits
 
-These estimates were the daily estimates multipled by the average number of smoky days observed in the specific state over the study period.
+Summary statistics.
 
-```{r period line graph, message = F, warning=F, echo = F, results='asis'}
+```{r summary stats of state period estimates, message = F, warning=F, echo = F, results='asis'}
+
 # Period estimates ----
 # small multiples plot
 period_df2 <- period_df %>% 
@@ -334,6 +395,37 @@ period_df2$state <- factor(period_df2$state,
 # preserve order of group
 period_df2$group <- factor(period_df2$group, 
   levels = unique(as.character(period_df2$group)))
+
+# create table for summary stats ----
+# make dataframe
+period_iqr_df <- as.data.frame(matrix(nrow = 6, ncol = 5))
+# assign variables
+colnames(period_iqr_df) <- c("strata", "n_obs", "median", "perc_25", "perc_75")
+
+# strata names 
+period_iqr_df[,1] <- unique(period_df2$group)
+
+# loop to calculate vals
+# ozone vals
+for(i in 1:6){
+
+  period_iqr_df[i, 2:5] <- period_df2 %>% 
+    filter(group == as.character(period_iqr_df[i,1])) %>% 
+    summarise(n_obs = n(), median_val = median(median), 
+              perc_25 = quantile(median, p = 0.25),
+              perc_75 = quantile(median, p = 0.75))
+}
+
+
+# table ----
+knitr::kable(period_iqr_df, caption = paste0("Table: Median and interquartile ",
+             "range of ED visits over study period 2005-2014"))
+```
+
+These estimates were the daily estimates multipled by the average number of smoky days observed in the specific state over the study period.
+
+```{r period line graph, message = F, warning=F, echo = F, results='asis'}
+
 
 # plot
 period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
@@ -429,7 +521,7 @@ prop_df2 <- prop_df %>%
          upper_bound_100k)
 
 # table ----
-knitr::kable(prop_df2, caption = paste0("Table 3: Estimated ED visit per 100k children",
+knitr::kable(prop_df2, caption = paste0("Table: Estimated ED visit per 100k children",
   " that may be due to wildfire-generated ozone"))
 ```
 
@@ -489,6 +581,6 @@ Output data as it was used in the document so MC results are the same.
 ### HIA Input Terms
 
 ```{r hia terms,  message = F, warning=F, echo = F, results='asis'}
-knitr::kable(hia_input, caption = paste0("Table 4: HIA term input and standard error",
+knitr::kable(hia_input, caption = paste0("Table: HIA term input and standard error",
              " for each state and strata"))
 ```
