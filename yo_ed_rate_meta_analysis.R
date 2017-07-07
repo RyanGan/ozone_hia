@@ -6,6 +6,7 @@
 
 # load library rmeta
 library(rmeta)
+library(lme4)
 
 # Using CDC asthma document, table 14, age (child 0 -17) estimates from 2001-09
 # http://www.cdc.gov/nchs/data/series/sr_03/sr03_035.pdf
@@ -38,3 +39,5 @@ round(yo_se/100,4)
 
 # Meta analysis estimate is lower than averaged estimate; standard error from 
 # meta analysis is much tighter compared to averaged standard error
+
+
