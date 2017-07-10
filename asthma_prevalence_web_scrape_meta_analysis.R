@@ -155,9 +155,6 @@ us <- subset(yearly_prev_se_est, state == "US")
 us
 # meta analysis is the same as produced in the above loop; it's working.
 us_meta <- meta.summaries(us$prev_n_est, us$prev_se_est, method = 'fixed')
-str(us_meta)
-
-
 
 # Asthma Prevalence by Sex -----------------------------------------------------
 # Sex and race strata estimates are in a different format in the table, so they
@@ -472,6 +469,7 @@ assign(paste0(race_name[i], "_state_meta_results"), race_state_meta_results)
 marginal_prev_meta_results <- rename(marginal_prev_meta_results, 
                                      state_count = state_est_count,
                                      state = state_list)
+
 # force all states in each dataframe to be character
 marginal_prev_meta_results$state <- as.character(marginal_prev_meta_results$state)
 female_state_meta_results$state <- as.character(female_state_meta_results$state)
@@ -481,8 +479,8 @@ black_state_meta_results$state <- as.character(black_state_meta_results$state)
 hispanic_state_meta_results$state <- as.character(hispanic_state_meta_results$state)
 
 # merege state lowercase name to abbreviation
-state_lowercase <- tolower(state.name)
-state_abbr <- state.abb
+state_lowercase <- c(tolower(state.name), "united states")
+state_abbr <- c(state.abb, "US")
 # create key
 state_key <- as.data.frame(cbind(state_lowercase, state_abbr))
 state_key$state_abbr <- as.character(state_key$state_abbr)
