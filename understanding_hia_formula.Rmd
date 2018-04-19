@@ -278,11 +278,3 @@ as.numeric(quantile(delta_y, 0.975, na.rm = T))
 # same answer. Yay, math! =^O.O^=
 
 ```
-
-## Example with a Continuous Predictor
-
-```{r}
-
-
-
-```
