@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Title: Monte Carlo Estimate for Wildfire Ozone and Asthma ED Visits
-# Author: Jacob Pratt and Ryan Gan
+# Author: Ryan Gan
 # Date: 2/18/17
 # ------------------------------------------------------------------------------
 
