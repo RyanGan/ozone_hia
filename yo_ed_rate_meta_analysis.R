@@ -13,7 +13,7 @@ library(rmeta)
 # We have updated estimates to reflect the ED visit rate of asthma per 10,000
 # children (Table 13 in the same CDC document)
 
-# Using CDC asthma document, table 13, age (child 0 -17) estimates from 2001-09
+# Using CDC asthma document, table 13, age (child 0 - 17) estimates from 2001-09
 # http://www.cdc.gov/nchs/data/series/sr_03/sr03_035.pdf
 # Table 13 estimates
 year <- c(2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009)

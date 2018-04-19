@@ -1,13 +1,13 @@
 ---
 title: "Wildfire Generated Ozone and Asthma Burden Assessment"
 author: "Ryan_Gan"
-date: "February 14, 2017"
+date: "April 19, 2018"
 output: html_document
 ---
 
 ## Purpose of Document
 
-Contains code and results for the health impact assessment (aka burden assement) of child asthma emergency department (ED) visits that may be attributed to wildfire-generated ozone (WFO~3~).
+Contains code and results for the health impact assessment (aka burden assessment) of child asthma emergency department (ED) visits that may be attributed to wildfire-generated ozone (WFO~3~).
 
 The general HIA/BA formula is as follows:
 
@@ -18,7 +18,7 @@ Daily HIA/BA formula:
 
 $\Delta y = \frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk$
 
-We further modified it to account for the observed number of smoky days in Brey and Fisher for each state to get an overal period estimate.
+We further modified it to account for the observed number of smoky days in Brey and Fisher for each state to get an overall period estimate.
 Period HIA/BA formula:
 $\Delta y = [\frac{y_{o}}{365 days} \times[1-e^{(-\beta \times \Delta exposure)}] \times pop. at risk] \times n smoky days$
 
@@ -27,20 +27,19 @@ $\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \time
 
 ## Estimate Terms
 
-*y~0~:* Baseline pediatric asthma ED visit rate. Came from CDC vital health statistics. Available for most states for multiple years. We pooled state estimates across years using meta-analysis to get pooled estimates and standard errors for each state.
+*y~0~:* Baseline pediatric asthma ED visit rate. This estimate came from CDC vital health statistics report. It was only available from 2001 to 2009. No information was available on strata-specific or state-specific ED visits rates, therefore the yearly pooled asthma ED visit rate and standard error is used for all strata and all state. 
 
-*WFO~3~ and n Smoky Days:* Change in wildfire-generated ozone measured in 1 part per billion. As multiple sites used in Brey and Fischer were present in each state, we again used a meta-analysis to pool ozone estimates and produce a standard error. We averaged the smoky days within a site as Poisson distributions only need a mean (mean = variance). There were a couple (14 I think) monitoring sites that we were not able to assign a state, as the latitude and longitude were likely on coastal areas where the shapefile we used to attempt to find which state it was located in did not have enough resolution (e.g. I think there was a site on an island off the coast of Florida that wasn't assigned a state). I tried a couple things to avoid missingness, but in the interest of time, I just used the code as is.
+*WFO~3~ and n Smoky Days:* Change in wildfire-generated ozone measured in 1 part per billion. As multiple sites used in Brey and Fischer were present in each state, we again used a meta-analysis to pool ozone estimates and produce a standard error. We averaged the smoky days within a site as Poisson distributions only need a mean (mean = variance). There were a couple (14 I think) monitoring sites that we were not able to assign a state, as the latitude and longitude were likely on coastal areas where the shape file we used to attempt to find which state it was located in did not have enough resolution (e.g. I think there was a site on an island off the coast of Florida that wasn't assigned a state). I tried a couple things to avoid missingness, but in the interest of time, I just used the code as is.
 
-*Pop at Risk:* This comes from Behavioral Risk Factor Surveillance System data from 2005 to 2014. Reported asthma prevalence (in counts) was available for most states, strata, and years in the study. We used meta-analysis to pool the estimate population at risk across years for each state and strata, as well as produce a standard error around this estimate.
+*Pop at Risk:* These estimates come from the 2010 census and are state-level population counts of persons under the age of 18. The counts are further stratified by sex, and by white/black race, and Hispanic ethnicity. 
 
-*Beta:* This has been revised. Beta estimate and standard error now come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
+*Beta:* Beta estimate and standard error come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continuous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
 
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
 library(scales)
 ```
-
 
 
 ```{r read data, message = F, warning=F, echo = F}
@@ -285,7 +284,7 @@ ggsave("./data/daily_state_bound_plots.pdf",
 
 ### Daily Map
 
-This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore we were not able to estimate for those states. 
+This is the small multiples map of the median daily \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces indicate a state that was missing estimates for some term in the HIA formula. Therefore we were not able to estimate for those states. 
 
 ```{r daily map, message = F, warning=F, echo = F, results='asis'}
 # I need to create a similar dataframe for small multiples as before, but I
@@ -335,7 +334,7 @@ ggsave("./data/daily_y_map.pdf", width = 6, height = 4, units = "in")
 
 ## Study Period (2005-2014) \(\Delta \) Emergency Department Visits
 
-These estimates were the daily estimates multipled by the average number of smoky days observed in the specific state and then summed over the study period.
+These estimates were the daily estimates multiplied by the average number of smoky days observed in the specific state and then summed over the study period.
 
 ```{r period US estimate, message = F, warning=F, echo = F, results='asis'}
 
@@ -422,7 +421,7 @@ knitr::kable(period_iqr_df, caption = paste0("Table: Median and interquartile ",
              "range of ED visits over study period 2005-2014"))
 ```
 
-These estimates were the daily estimates multipled by the average number of smoky days observed in the specific state over the study period.
+These estimates were the daily estimates multiplied by the average number of smoky days observed in the specific state over the study period.
 
 ```{r period line graph, message = F, warning=F, echo = F, results='asis'}
 
@@ -453,7 +452,7 @@ ggsave("./data/period_state_bound_plots.pdf",
 
 ### Period Map
 
-This is the small multiples map of the median overall \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces incidate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
+This is the small multiples map of the median overall \(\Delta \) ED visits estimated on an average smoky day over the study period of 2005-2014. White spaces indicate a state that was missing estimates for some term in the HIA formula. Therefore were were not able to estimate for those states. 
 
 
 ```{r period map, message = F, warning=F, echo = F, results='asis'}
@@ -503,7 +502,7 @@ ggsave("./data/period_y_map.pdf", width = 6, height = 4, units = "in")
 
 ## \(\Delta \) Emergency Department Visits over Population at Risk Maps
 
-I did some simulations in a markdown file to test out this concept and I believe it can be thought of in a similar way to incidence proportion. It's actually closest in estimation to the attributable risk differece between exposed and unexposed. The HIA/BA formula can be modified by simply removing the term for population at risk. The calculated proportion is very small, so I think we'll multiply it by 100,000 children (like Jake originally did). I don't know the best way to phrase it, but I would probably call this something like estimated number of emergency department visits per 100,000 children with asthma that may attributed to WFO~3~. I did not estimate proportion every day, but only over the entire period (wouldn't be too hard to add daily though). 
+I did some simulations in a markdown file to test out this concept and I believe it can be thought of in a similar way to incidence proportion. It's actually closest in estimation to the attributable risk difference between exposed and unexposed. The HIA/BA formula can be modified by simply removing the term for population at risk. The calculated proportion is very small, so I think we'll multiply it by 100,000 children (like Jake originally did). I don't know the best way to phrase it, but I would probably call this something like estimated number of emergency department visits per 100,000 children with asthma that may attributed to WFO~3~. I did not estimate proportion every day, but only over the entire period (wouldn't be too hard to add daily though). 
 
 ### Estimated ED visit per 100k children 
 

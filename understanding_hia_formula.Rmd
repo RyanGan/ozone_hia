@@ -14,29 +14,34 @@ library(broom)
 
 To explore how the Health Impact Assessment/Burden Assessment formula is supposed to work. In theory, it can be used to estimate the impact of a pollutant/policy on population health in the form of an estimated count of outcomes that may be due to that pollutant/policy (assuming a causal relationship) using information from existing sources and without having to undertake a study to specifically answer the question.
 
-Going to start with a simulated 'true' association for a binary outcome.
+Going to start with a simulated 'true' association for a binary outcome. I'm going to use Texas as an example. The population of Texas as of July 1st is 27,862,596. The estimated number of Children (under 18) in the state is 26.2%, so 7,300,000 children under the age of 18. 
+
+Based on CDC estimates of children under 15 that had reported asthma in the past year that I think we estimated by scrapping and then using a meta-analysis is around 548,901. There is some disconnect between year and age, but this suggests the prevalence of childhood ashtma in Texas is around 7.5%. I think that sounds reasonable. 
+
+I'm going to also inflate the exposure, lets say smoke day to 10%. It's probably more like <5%.
 
 ```{r population simulation, message=F}
 # simulation population data ----
 set.seed(987)
-pop_data <- data_frame(x = rep(seq(from = 1, to = 100, by =1), 100)) %>% 
+pop_data <- data_frame(x = rep(seq(from = 1, to = 1000, by =1), 100)) %>% 
   arrange(x) %>%  # sort x by ascending values
-  cbind(y = rep(seq(from = 1, to = 100, by =1), 100)) %>% 
+  cbind(y = rep(seq(from = 1, to = 1000, by =1), 100)) %>% 
   # create randomly assigned proportion of disease
-  mutate(exposure = rbinom(10000, size = 1, prob = 0.5),
+  mutate(exposure = rbinom(100000, size = 1, prob = 0.1),
          exp_yn = ifelse(exposure == 1, "Yes", "No"))
 
 
 # finding the formula of the baseline disease probability I want
 # 1/(1+exp(-(-3.6 + 0.69))) 
 # logit relationship between dis and exp
-logit_form = -3.33 + 0.69*pop_data$exposure # linear combination with a bias
+logit_form = -2.5 + 0.09*pop_data$exposure # linear combination with a bias
 # define probability of disease given formula
 pr = 1/(1+exp(-logit_form))   
 
+
 # simulate disease
 pop_data <- pop_data %>% 
-  cbind(disease = rbinom(10000, size = 1, prob = pr)) %>% 
+  cbind(disease = rbinom(100000, size = 1, prob = pr)) %>% 
   mutate(dis_yn = ifelse(disease == 1, "Yes", "No"),
          # make 4 category exposure/disease variable
          exp_dis = as.factor(
@@ -45,10 +50,9 @@ pop_data <- pop_data %>%
                    ifelse(exposure == 1 & disease == 0, "Exp = Y, Dis = N",
                    ifelse(exposure == 1 & disease == 1, "Exp = Y, Dis = Y", 
                           NA))))))
-
 ```
 
-In the simulation above, I've created a binary exposure with a distribution in the population of roughly 50%. I then defined the exposure/response relationship to be an odds ratio of ~2.00 (or a beta of 0.69). Also, the baseline proportion of disease in this population is ~0.05 or 5%. Below are our estimates of 'truth'.
+In the simulation above, I've created a binary exposure where roughly 10% of the population had been exposed to a smoke day. I then defined the exposure/response relationship to be an odds ratio of ~1.09, or a ~9% increase in risk on a smoke day (or a beta of 0.09). Also, the baseline proportion of disease in this population is ~0.076 or 7.6%. Roughly the prevalence of asthma in Texas. Below are our estimates of 'truth'.
 
 Contigency table of simulated data by exposure/disease status.
 

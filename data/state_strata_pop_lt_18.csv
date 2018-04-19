@@ -1,0 +1,289 @@
+state,strata,pop_at_risk
+alabama,marginal,1163713
+arizona,marginal,1710799
+arkansas,marginal,735868
+california,marginal,9922201
+colorado,marginal,1295345
+connecticut,marginal,854611
+delaware,marginal,217451
+florida,marginal,4165347
+georgia,marginal,2581439
+idaho,marginal,445330
+illinois,marginal,3243593
+indiana,marginal,1672609
+iowa,marginal,756355
+kansas,marginal,770300
+kentucky,marginal,1062388
+louisiana,marginal,1148910
+maine,marginal,283894
+maryland,marginal,1427972
+massachusetts,marginal,1479903
+michigan,marginal,2457903
+minnesota,marginal,1353173
+mississippi,marginal,771688
+missouri,marginal,1485917
+montana,marginal,234600
+nebraska,marginal,479152
+nevada,marginal,717830
+new hampshire,marginal,296981
+new jersey,marginal,2144266
+new mexico,marginal,540605
+new york,marginal,4504635
+north carolina,marginal,2381786
+north dakota,marginal,155913
+ohio,marginal,2857387
+oklahoma,marginal,1028140
+oregon,marginal,928760
+pennsylvania,marginal,2905778
+rhode island,marginal,236863
+south carolina,marginal,1119316
+south dakota,marginal,212195
+tennessee,marginal,1548126
+texas,marginal,7072004
+utah,marginal,906698
+vermont,marginal,133735
+virginia,marginal,1963053
+washington,marginal,1734537
+west virginia,marginal,401190
+wisconsin,marginal,1393000
+wyoming,marginal,140245
+alabama,male,594422
+alabama,female,569291
+arizona,male,873481
+arizona,female,837318
+arkansas,male,376197
+arkansas,female,359671
+california,male,5075485
+california,female,4846716
+colorado,male,662778
+colorado,female,632567
+connecticut,male,437171
+connecticut,female,417440
+delaware,male,110567
+delaware,female,106884
+florida,male,2129235
+florida,female,2036112
+georgia,male,1317572
+georgia,female,1263867
+idaho,male,228395
+idaho,female,216935
+illinois,male,1656276
+illinois,female,1587317
+indiana,male,855361
+indiana,female,817248
+iowa,male,387897
+iowa,female,368458
+kansas,male,394487
+kansas,female,375813
+kentucky,male,544056
+kentucky,female,518332
+louisiana,male,586490
+louisiana,female,562420
+maine,male,145747
+maine,female,138147
+maryland,male,727852
+maryland,female,700120
+massachusetts,male,756154
+massachusetts,female,723749
+michigan,male,1257948
+michigan,female,1199955
+minnesota,male,691772
+minnesota,female,661401
+mississippi,male,393781
+mississippi,female,377907
+missouri,male,760301
+missouri,female,725616
+montana,male,120675
+montana,female,113925
+nebraska,male,245155
+nebraska,female,233997
+nevada,male,367467
+nevada,female,350363
+new hampshire,male,151968
+new hampshire,female,145013
+new jersey,male,1096629
+new jersey,female,1047637
+new mexico,male,275409
+new mexico,female,265196
+new york,male,2302198
+new york,female,2202437
+north carolina,male,1217863
+north carolina,female,1163923
+north dakota,male,79812
+north dakota,female,76101
+ohio,male,1459863
+ohio,female,1397524
+oklahoma,male,525945
+oklahoma,female,502195
+oregon,male,475386
+oregon,female,453374
+pennsylvania,male,1486522
+pennsylvania,female,1419256
+rhode island,male,121196
+rhode island,female,115667
+south carolina,male,570049
+south carolina,female,549267
+south dakota,male,108818
+south dakota,female,103377
+tennessee,male,791324
+tennessee,female,756802
+texas,male,3614579
+texas,female,3457425
+utah,male,465697
+utah,female,441001
+vermont,male,68602
+vermont,female,65133
+virginia,male,1001980
+virginia,female,961073
+washington,male,888045
+washington,female,846492
+west virginia,male,205610
+west virginia,female,195580
+wisconsin,male,712387
+wisconsin,female,680613
+wyoming,male,72244
+wyoming,female,68001
+alabama,white,758526
+alabama,black,366378
+arizona,white,1374219
+arizona,black,119584
+arkansas,white,554184
+arkansas,black,148964
+california,white,7279226
+california,black,842598
+colorado,white,1098247
+colorado,black,89201
+connecticut,white,660879
+connecticut,black,133879
+delaware,white,139881
+delaware,black,64192
+florida,white,2965025
+florida,black,987286
+georgia,white,1512876
+georgia,black,926519
+idaho,white,410318
+idaho,black,8160
+illinois,white,2414110
+illinois,black,606609
+indiana,white,1385546
+indiana,black,228655
+iowa,white,675694
+iowa,black,49276
+kansas,white,644135
+kansas,black,74995
+kentucky,white,908413
+kentucky,black,123351
+louisiana,white,659078
+louisiana,black,448529
+maine,white,261561
+maine,black,10452
+maryland,white,806765
+maryland,black,499303
+massachusetts,white,1181355
+massachusetts,black,173673
+michigan,white,1854412
+michigan,black,464361
+minnesota,white,1088140
+minnesota,black,134479
+mississippi,white,409281
+mississippi,black,343435
+missouri,white,1185110
+missouri,black,238215
+montana,white,197769
+montana,black,3853
+nebraska,white,411023
+nebraska,black,39112
+nevada,white,534435
+nevada,black,85191
+new hampshire,white,273227
+new hampshire,black,9345
+new jersey,white,1512964
+new jersey,black,388695
+new mexico,white,428858
+new mexico,black,21714
+new york,white,3064048
+new york,black,977170
+north carolina,white,1598805
+north carolina,black,629687
+north dakota,white,131876
+north dakota,black,4857
+ohio,white,2256132
+ohio,black,499682
+oklahoma,white,708668
+oklahoma,black,113850
+oregon,white,784065
+oregon,black,39240
+pennsylvania,white,2280234
+pennsylvania,black,481184
+rhode island,white,189456
+rhode island,black,30390
+south carolina,white,699045
+south carolina,black,381983
+south dakota,white,167361
+south dakota,black,7017
+tennessee,white,1153944
+tennessee,black,339708
+texas,white,5615726
+texas,black,996733
+utah,white,818305
+utah,black,22315
+vermont,white,124296
+vermont,black,4122
+virginia,white,1315378
+virginia,black,468948
+washington,white,1340980
+washington,black,122126
+west virginia,white,369047
+west virginia,black,24373
+wisconsin,white,1150101
+wisconsin,black,153657
+wyoming,white,127751
+wyoming,black,3016
+alabama,hispanic,70225
+arizona,hispanic,728848
+arkansas,hispanic,77691
+california,hispanic,4955185
+colorado,hispanic,394034
+connecticut,hispanic,168747
+delaware,hispanic,28624
+florida,hispanic,1138981
+georgia,hispanic,327695
+idaho,hispanic,76414
+illinois,hispanic,744200
+indiana,hispanic,161381
+iowa,hispanic,66258
+kansas,hispanic,128723
+kentucky,hispanic,52847
+louisiana,hispanic,57912
+maine,hispanic,7114
+maryland,hispanic,158576
+massachusetts,hispanic,223309
+michigan,hispanic,184899
+minnesota,hispanic,109334
+mississippi,hispanic,28069
+missouri,hispanic,86347
+montana,hispanic,12437
+nebraska,hispanic,72226
+nevada,hispanic,274567
+new hampshire,hispanic,14770
+new jersey,hispanic,481296
+new mexico,hispanic,311408
+new york,hispanic,1024120
+north carolina,hispanic,322163
+north dakota,hispanic,5951
+ohio,hispanic,146723
+oklahoma,hispanic,143597
+oregon,hispanic,191597
+pennsylvania,hispanic,278761
+rhode island,hispanic,48835
+south carolina,hispanic,85363
+south dakota,hispanic,10138
+tennessee,hispanic,113420
+texas,hispanic,3375488
+utah,hispanic,150574
+vermont,hispanic,3247
+virginia,hispanic,218621
+washington,hispanic,323345
+west virginia,hispanic,8224
+wisconsin,hispanic,143652
+wyoming,hispanic,19176

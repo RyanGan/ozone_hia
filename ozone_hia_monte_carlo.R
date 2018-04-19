@@ -73,9 +73,9 @@ for(k in 1:length(strata_list)){
   # simulate the distributions outside the loop
   # output the value for alabama since they are the same for each state
   # these estimate comes from a meta analysis of the estimate and prev.
-  yo_marginal <- as.numeric(df_to_loop[1,8]) 
-  yo_se_marginal <- as.numeric(df_to_loop[1,9]) 
-  
+  yo_marginal <- as.numeric(df_to_loop[1,7]) 
+  yo_se_marginal <- as.numeric(df_to_loop[1,8]) 
+
   yo_distribution <- rnorm(n, mean = yo_marginal, sd = yo_se_marginal)
   
   # yo check  
@@ -96,29 +96,35 @@ for(k in 1:length(strata_list)){
   
   # start 2nd loop to run MC for each state ----
   for(i in 1:nrow(df_to_loop)){
- 
+
     # feed state name in to hia dataframe
     hia_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     hia_daily_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     hia_prop_df[[i, 1]] <- as.character(df_to_loop[i, 1])
     
+    # Note 4/19/18: I am using the 2010 estimate of children with asthma and
+    # no longer need to simulate this distribution
     # Now I need to simulate the distributions for population at risk and 
     # output the state-specific pop_at_risk values
     state_par_val <- as.numeric(df_to_loop[i, 3]) 
-    state_par_se <- as.numeric(df_to_loop[i, 4]) 
-    # create state-specific pop at risk distribution
-    state_par_distribution <- rnorm(n, mean = state_par_val, sd = state_par_se)
-    
+
     # output the state-specific delta ozone values
-    state_delta_o3 <- as.numeric(df_to_loop[i, 5])
-    state_do3_se <- as.numeric(df_to_loop[i, 6])
+    state_delta_o3 <- as.numeric(df_to_loop[i, 4])
+    state_do3_se <- as.numeric(df_to_loop[i, 5])
     # create state-specific o3 distribution
     state_o3_distribution <- rnorm(n, mean = state_delta_o3, sd = state_do3_se)
     
+    # delta o3 distribution check
+    # ggplot(data = as.data.frame(state_o3_distribution), aes(x=state_o3_distribution))+ 
+    # geom_density()
+
     # output the state-specific n smoke days value
-    state_smk_d_n <- as.numeric(df_to_loop[i, 7])
+    state_smk_d_n <- as.numeric(df_to_loop[i, 6])
     # create state_specific smoke days Poisson dist
     state_smoky_days_distribution <- rpois(n, state_smk_d_n)
+    # smoky day distribution check
+    # ggplot(data = as.data.frame(state_smoky_days_distribution), aes(x=state_smoky_days_distribution))+ 
+    # geom_density()
     
     # make empty vectors to fill with change in y
     # daily 
@@ -130,6 +136,7 @@ for(k in 1:length(strata_list)){
     
     # beginning of inner loop to estimate n interations of HIA formula ----
     for(j in 1:n) {
+
       # take one random value with replacement from the ED_rate distribution
       # divide by 365 to estimate daily rate
       est_yo <- (sample(yo_distribution, 1, replace = T))/365
@@ -138,7 +145,7 @@ for(k in 1:length(strata_list)){
       # take one random value from the ozone distribution with replacement
       est_delta_o3 <- sample(state_o3_distribution, 1, replace = T)
       # take one random value from the population at risk distribution with replacement
-      pop_at_risk <- sample(state_par_distribution, 1, replace = T)
+      pop_at_risk <- state_par_val
       #take a random value from the poisson distribution of smoky days
       est_smoky_days <- sample(state_smoky_days_distribution, 1, replace = T)
       
@@ -302,7 +309,7 @@ prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
   select(-group) %>% 
   rename(group = group2)
 
-filter(prop_df, group == "marginal")
+
 
 # write permanent file
 write_csv(prop_df, "./data/mc_estimates/mc_prop_100k.csv")

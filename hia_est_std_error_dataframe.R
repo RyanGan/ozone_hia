@@ -2,15 +2,15 @@
 # Title: Script to assemble all state-specific estimates for HIA
 # Author: Ryan Gan
 # Date: 2/21/17
+# Update: 4/19/18
 # ------------------------------------------------------------------------------
 
 # load tidyverse package ----
 library(tidyverse)
 
 # import created dataframes ----
-# pop at risk
-state_par_df <- read_csv("./data/state_strata_pop_at_risk.csv") %>% 
-  rename(state = State)
+# pop at risk; updated to use the new population at risk
+state_par_df <- read_csv("./data/state_strata_pop_lt_18.csv")
 
 glimpse(state_par_df)
 
@@ -22,25 +22,14 @@ glimpse(ozone_smoke_df)
 
 # entering yo and se from meta analysis based on CDC document (Table 14)
 # https://www.cdc.gov/nchs/data/series/sr_03/sr03_035.pdf
-# yo = 0.1067
-# yo_se = 0.0047
+# yo = 0.0095
+# yo_se = 0.0004
 strata <- unique(state_par_df$strata)
 
 # create dataframe
 strata_yo_estimates <- data_frame(strata) %>% 
-  # enter yo and se for each strata from table 15
-  mutate(yo = ifelse(strata == "marginal", 0.1067,
-              ifelse(strata == "female", 0.093,
-              ifelse(strata == "male", 0.118, 
-              ifelse(strata == "white", 0.094,
-              ifelse(strata == "black", 0.152,
-              ifelse(strata == "hispanic", 0.125, NA)))))),
-      yo_se = ifelse(strata == "marginal", 0.0047,
-              ifelse(strata == "female", 0.011,
-              ifelse(strata == "male", 0.013 , 
-              ifelse(strata == "white", 0.010,
-              ifelse(strata == "black", 0.021,
-              ifelse(strata == "hispanic", 0.021, NA)))))))
+  # enter same yo and se for each strata 
+  mutate(yo =  0.0095, yo_se = 0.0004)
 
 glimpse(strata_yo_estimates)
 
