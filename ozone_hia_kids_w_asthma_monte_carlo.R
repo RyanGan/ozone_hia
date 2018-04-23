@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
 # Title: Monte Carlo Estimate for Wildfire Ozone and Asthma ED Visits
-# Author: Jacob Pratt and Ryan Gan
+#       Kids with asthma population at risk
+# Author: Ryan Gan
 # Date: 2/18/17
 # ------------------------------------------------------------------------------
 
@@ -8,7 +9,80 @@
 library(tidyverse)
 
 # data read ----
-hia_estimates_df <- read_csv("./data/state_strata_hia_estimates.csv")
+# reading in kids with asthma dataframe, which has specific demographics estimates
+hia_estimates_df <- read_csv("./data/state_strata_hia_kids_w_asthma_estimates.csv")
+
+
+# hard-coding in population at risk for states that don't participate in BRFSS
+# by taking 2010 census estimates and multiplying by a prevalence of 9.5 (se = 0.2)
+# or 0.095 and standard error of 0.002
+
+# extract baseline ED rates by strata to join with missing population
+strata_ed_rates <- hia_estimates_df %>% 
+  filter(!is.na(yo)) %>% 
+  group_by(strata) %>% 
+  filter(row_number()==1) %>% 
+  select(strata, yo, yo_se)
+
+state <- unique(hia_estimates_df$state)[which(unique(hia_estimates_df$state)!= "united states")]
+strata <- unique(hia_estimates_df$strata)[1:6]
+
+# expand state grid
+state_margin <- data.frame(expand.grid(state, strata)) %>% 
+  mutate_all(as.character)
+names(state_margin) <- c("state", "strata")
+
+# missing yo rates
+yo_rates <- hia_estimates_df %>% 
+  select(state, strata, yo, pop_at_risk) %>% 
+  right_join(state_margin, by = c("state", "strata")) %>% 
+  filter(is.na(yo) | is.na(pop_at_risk)) %>% 
+  select(-yo, -pop_at_risk)
+         
+
+# reading in the all kids dataset to get census estimates by strata 
+# strata-sepcific estimates for missing values coming from table 2 of CDC asthma
+# document
+miss_pop_at_risk <- yo_rates %>% 
+  left_join(read_csv("./data/state_strata_hia_all_kids_estimates.csv"), 
+            by = c("state", "strata")) %>% 
+  select(state:n_smoky) %>% 
+  rename(census = pop_at_risk) %>% 
+  # hard code prevalent estimates of asthma
+  mutate(prev = case_when(strata == "marginal" ~ 0.095,
+                          strata == "female" ~ 0.078,
+                          strata == "male" ~ 0.111,
+                          strata == "white" ~ 0.082,
+                          strata == "black" ~ 0.160,
+                          strata == "hispanic" ~ 0.075),
+         upper95 = case_when(strata == "marginal" ~ 0.095 + (1.96*0.002),
+                        strata == "female" ~ 0.078 + (1.96*0.003),
+                        strata == "male" ~ 0.111 + (1.96*0.003), 
+                        strata == "white" ~ 0.082 + (1.96*0.003),
+                        strata == "black" ~ 0.160 + (1.96*0.007),
+                        strata == "hispanic" ~ 0.075 + (1.96*0.004)),
+         pop_at_risk = census*prev,
+         # hard-code standard error
+         par_se = (census*upper95)-pop_at_risk) %>% 
+  # retain only 
+  select(state, strata, pop_at_risk, par_se, delta_o3:n_smoky) %>% 
+  # left_join ed visit rates
+  left_join(strata_ed_rates, by = "strata") %>% 
+  mutate(beta = 0.0095,
+         beta_se = 0.004)
+
+xtabs(~hia_estimates_df$state)
+# remove missing values from HIA dataframe and join values back in
+hia_estimates_complete_df <- hia_estimates_df %>% 
+  bind_rows(miss_pop_at_risk) %>% 
+  arrange(strata, state) %>% 
+  filter(state != "united states") %>% 
+  filter(!is.na(delta_o3))
+
+xtabs(~hia_estimates_complete_df$state)
+length(unique(hia_estimates_complete_df$state))
+# write dataframe for table used in output
+write_csv(hia_estimates_complete_df, "./data/state_strata_hia_est_table.csv")
 
 # Estimates of ED visit burden in U.S. children with asthma that may be due to 
 # exposure to ozone generated from wildfires. Beta estimate and standard error 
@@ -54,17 +128,17 @@ beta_distribution <- rnorm(n, mean = beta, sd = beta_se)
 # exp(as.numeric(quantile(beta_distribution, 0.975, na.rm = T))*10)
 
 # output strata to subset
-strata_list <- unique(hia_estimates_df$strata)[1:6]
+strata_list <- unique(hia_estimates_complete_df$strata)[1:6]
 strata_list
 
 # strata loop ---
 for(k in 1:length(strata_list)){
 
+
   # set dataframe to loop through  
   # Note: changing name 'data_frame' to 'df_to_loop' 
   # since it's also a function in dplyr
-  df_to_loop <- hia_estimates_df %>% filter(strata == strata_list[k]) %>% 
-    filter(complete.cases(.))
+  df_to_loop <- hia_estimates_complete_df %>% filter(strata == strata_list[k]) 
   
   df_name <- strata_list[k]
   
@@ -262,7 +336,7 @@ daily_df <- rbind(marginal_hia_daily, female_hia_daily, male_hia_daily,
   rename(group = group2) 
 
 # write permanent file
-write_csv(daily_df, "./data/mc_estimates/mc_daily.csv")
+write_csv(daily_df, "./data/mc_estimates/asthma_mc_daily.csv")
 
 # study period 2005-2014 dataframe ----
 period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
@@ -281,7 +355,7 @@ period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
   rename(group = group2) 
 
 # write permanent file
-write_csv(period_df, "./data/mc_estimates/mc_period.csv")
+write_csv(period_df, "./data/mc_estimates/asthma_mc_period.csv")
 
 # proportion dataframe ----
 prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
@@ -302,7 +376,16 @@ prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
   select(-group) %>% 
   rename(group = group2)
 
-filter(prop_df, group == "marginal")
 
 # write permanent file
-write_csv(prop_df, "./data/mc_estimates/mc_prop_100k.csv")
+write_csv(prop_df, "./data/mc_estimates/asthma_mc_prop_100k.csv")
+
+# going to write out the vector of states used in asthma at risk population
+# to compare with sum using all kids at risk population
+states <- marginal_hia_period %>% 
+  select(state) %>% 
+  rename(asthma_states = state)
+
+glimpse(states)
+# write compare states
+write_csv(states, "./data/compare_states.csv")

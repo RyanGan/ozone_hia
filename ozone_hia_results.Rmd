@@ -31,10 +31,9 @@ $\frac{\Delta y}{pop.atrisk} = (\frac{y_{o}}{365 days} \times[1-e^{(-\beta \time
 
 *WFO~3~ and n Smoky Days:* Change in wildfire-generated ozone measured in 1 part per billion. As multiple sites used in Brey and Fischer were present in each state, we again used a meta-analysis to pool ozone estimates and produce a standard error. We averaged the smoky days within a site as Poisson distributions only need a mean (mean = variance). There were a couple (14 I think) monitoring sites that we were not able to assign a state, as the latitude and longitude were likely on coastal areas where the shape file we used to attempt to find which state it was located in did not have enough resolution (e.g. I think there was a site on an island off the coast of Florida that wasn't assigned a state). I tried a couple things to avoid missingness, but in the interest of time, I just used the code as is.
 
-*Pop at Risk:* These estimates come from the 2010 census and are state-level population counts of persons under the age of 18. The counts are further stratified by sex, and by white/black race, and Hispanic ethnicity. 
+*Pop at Risk:* These estimates comes from Behavioral Risk Factor Surveillance System data from 2005 to 2014. Reported asthma prevalence (in counts) was available for most states, strata, and years in the study. We used meta-analysis to pool the estimate population at risk across years for each state and strata, as well as produce a standard error around this estimate. Colorado, Arkansas, Florida, and South Carolina did not participate in BRFSS, so we used national estimatesfrom the CDC vital statistics report (Table 2) multiplied by the 2010 population census estimates for specific demographics to impute the number of prevalent children with asthma and standard error.
 
 *Beta:* Beta estimate and standard error come from the Mar and Koenig 2009 paper. This estimate is child-specific (ages 0-18) of same day concentrations of ozone and ED visits. They found a risk ratio of 1.10 (95%CI: 1.01-1.19) for an ED visit for every 10 ppb increase in ozone, which were averaged across two study sites. We decided on this estimate for our HIA because it was specific to children, had a continuous estimate of ozone, in the U.S., and on the same day (lag day 0). I calculated the beta estimate to be 0.0095 for a 1 ppb increase, with a standard error of 0.004. 
-
 
 ```{r call libraries, message = F, echo = F, warning=F}
 library(tidyverse)
@@ -44,15 +43,15 @@ library(scales)
 
 ```{r read data, message = F, warning=F, echo = F}
 # input mc daily estimates
-daily_df <- read_csv("./data/mc_estimates/mc_daily.csv")
+daily_df <- read_csv("./data/mc_estimates/asthma_mc_daily.csv")
 # input mc period estimates
-period_df <- read_csv("./data/mc_estimates/mc_period.csv")
+period_df <- read_csv("./data/mc_estimates/asthma_mc_period.csv")
 # input mc proportion estimates
-prop_df <- read_csv("./data/mc_estimates/mc_prop_100k.csv")
+prop_df <- read_csv("./data/mc_estimates/asthma_mc_prop_100k.csv")
 # input ozone vals
 state_ozone <- read_csv("./data/state_delta_o3.csv")
 # read in hia input term dataset
-hia_input <- read_csv("./data/state_strata_hia_estimates.csv")
+hia_input <- read_csv("./data/state_strata_hia_est_table.csv")
 ```
 
 
@@ -125,7 +124,7 @@ ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 ozone_map
 # save 6 inch by 4 inch
-ggsave("./data/ozone_map.png", width = 6, height = 4, units = "in")
+ggsave("./data/fig1_ozone_map.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -154,7 +153,7 @@ smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 smoke_days_map
 # smoke map
-ggsave("./data/smoke_days_map.png", width = 7, height = 4, units = "in")
+ggsave("./data/fig2_smoke_days_map.png", width = 7, height = 4, units = "in")
 
 ```
 
@@ -168,15 +167,16 @@ Tables and graphs are for daily and period estimates for each strata of interest
 Estimates for the overall burden of asthma were the summed estimates calculated for each state. I've included the strata and state-specific estimate inputs and uncertainty (standard error) for the HIA formula at the very end of this document since it's large.
 
 
-
 ```{r daily US estimate, message = F, warning=F, echo = F, results='asis'}
 
 # Daily estimates -----
 # create a dataframe with all strata estimates and bind rows for 
 # small multiples plot
 daily_df2 <- daily_df %>% 
-  filter(state == "state_sum") %>% 
-  select(group, median, lower_bound, upper_bound)
+  filter(!is.na(median)) %>% 
+  group_by(group) %>%  
+  summarise(median = sum(median), lower_bound = sum(lower_bound), 
+            upper_bound = sum(upper_bound))
 
 # table ----
 knitr::kable(daily_df2, caption = paste0("Table: Estimated average daily ED visit burden",
@@ -303,7 +303,8 @@ state_map_df <- map_data("state")
 # merge median values to statemap
 state_vals_map_df <- state_map_df %>% 
   full_join(daily_df_map, by = c("region" = "state")) %>% 
-  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
+  mutate(missing = ifelse(is.na(median), 1, NA),
+         median = ifelse(median < 0, 0, median)) %>% 
   filter(!is.na(strata))
 
 # preserve order of strata (groups)
@@ -316,7 +317,7 @@ daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
   scale_fill_gradient("Daily Number \nof ED Visits", 
-                      low = '#2c7bb6', high = '#d7191c') + 
+                      low = '#2c7bb6', high = '#d7191c', limits = c(0, 15)) + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -417,7 +418,6 @@ for(i in 1:6){
               perc_75 = quantile(median, p = 0.75))
 }
 
-
 # table ----
 knitr::kable(period_iqr_df, caption = paste0("Table: Median and interquartile ",
              "range of ED visits over study period 2005-2014"))
@@ -426,7 +426,6 @@ knitr::kable(period_iqr_df, caption = paste0("Table: Median and interquartile ",
 These estimates were the daily estimates multiplied by the average number of smoky days observed in the specific state over the study period.
 
 ```{r period line graph, message = F, warning=F, echo = F, results='asis'}
-
 
 # plot
 period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
@@ -472,8 +471,10 @@ state_map_df <- map_data("state")
 # merge median values to statemap
 state_vals_map_df <- state_map_df %>% 
   full_join(period_df_map, by = c("region" = "state")) %>% 
-  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
+  mutate(missing = ifelse(is.na(median), 1, NA),
+         median = ifelse(median < 0, 0, median)) %>% 
   filter(!is.na(strata))
+
 
 # preserve order of strata (groups)
 state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
@@ -485,7 +486,7 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
   scale_fill_gradient(expression("Number of \nED Visits \n2005-2014"), 
-                      low = '#2c7bb6', high = '#d7191c') + 
+                      low = '#2c7bb6', high = '#d7191c', limits = c(0, 475)) + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -499,7 +500,7 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 period_map
 
 # save 6 inch by 4 inch
-ggsave("./data/period_y_map.png", width = 6, height = 4, units = "in")
+ggsave("./data/fig3_period_y_map.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -593,13 +594,15 @@ state_map_df <- map_data("state")
 # merge median values to statemap
 state_vals_map_df <- state_map_df %>% 
   full_join(prop_df_map, by = c("region" = "state")) %>% 
-  mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
-  filter(!is.na(strata)) %>% 
-  filter(strata == "Marginal")
+  mutate(missing = ifelse(is.na(median), 1, NA),
+         median = ifelse(median < 0, 0, median)) %>% 
+  filter(!is.na(strata)) 
 
 # preserve order of strata (groups)
 state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
   levels = unique(as.character(state_vals_map_df$strata)))
+
+# map
 prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # outline of states
   geom_path() +
@@ -607,6 +610,7 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_polygon(data = state_vals_map_df, aes(fill = median_100k), alpha = 0.7) +
   scale_fill_gradient(expression("ED Visits per \n100k Children \n2005-2014"), 
                       low = '#2c7bb6', high = '#d7191c') + 
+  facet_wrap(~strata) + 
   xlab("Longitude") +
   ylab("Latitude") +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -618,9 +622,13 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 prop_map
 # save image
-ggsave("./data/proportion_map.png", width = 6, height = 4, units = "in")
+ggsave("./data/fig4_proportion_map.png", width = 6, height = 4, units = "in")
 
 ```
+
+## Sensitivity Analysis
+
+Using a different estimation of population at-risk. These estimates come from the 2010 census and are state-level population counts of persons under the age of 18. The counts are further stratified by sex, and by white/black race, and Hispanic ethnicity. 
 
 Output data as it was used in the document so MC results are the same.
 

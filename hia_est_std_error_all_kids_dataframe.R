@@ -45,4 +45,4 @@ state_strata_estimates <- state_par_df %>%
 glimpse(state_strata_estimates)
 
 # write permanent dataframe
-write_csv(state_strata_estimates, "./data/state_strata_hia_estimates.csv")
+write_csv(state_strata_estimates, "./data/state_strata_hia_all_kids_estimates.csv")

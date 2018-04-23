@@ -1,14 +1,16 @@
 # ------------------------------------------------------------------------------
-# Title: Monte Carlo Estimate for Wildfire Ozone and Asthma ED Visits
+# Title: Monte Carlo Estimate for Wildfire Ozone and Asthma ED Visits 
+#       All kids population at risk
 # Author: Ryan Gan
-# Date: 2/18/17
+# Date: 4/23/18
 # ------------------------------------------------------------------------------
 
 # library
 library(tidyverse)
 
 # data read ----
-hia_estimates_df <- read_csv("./data/state_strata_hia_estimates.csv")
+# reading in 
+hia_estimates_df <- read_csv("./data/state_strata_hia_all_kids_estimates.csv")
 
 # Estimates of ED visit burden in U.S. children with asthma that may be due to 
 # exposure to ozone generated from wildfires. Beta estimate and standard error 
@@ -37,7 +39,7 @@ n <- 10000
 # using the same beta estimate for all simulations
 beta <- 0.0095
 beta_se <- 0.0040
-
+head(hia_estimates_df)
 # distribution of beta
 set.seed(sim_seed)
 beta_distribution <- rnorm(n, mean = beta, sd = beta_se)
@@ -251,6 +253,9 @@ for(k in 1:length(strata_list)){
 
 # aggregate dataframes to use for small-multiples figure in results ----
 # Daily estimates -----
+# read in asthma states dataframe
+asthma_states <- read_csv("./data/compare_states.csv") %>% 
+  filter(asthma_states != "state_sum")
 # create a dataframe with all strata estimates and bind rows for 
 # small multiples plot
 daily_df <- rbind(marginal_hia_daily, female_hia_daily, male_hia_daily,
@@ -269,7 +274,7 @@ daily_df <- rbind(marginal_hia_daily, female_hia_daily, male_hia_daily,
   rename(group = group2) 
 
 # write permanent file
-write_csv(daily_df, "./data/mc_estimates/mc_daily.csv")
+write_csv(daily_df, "./data/mc_estimates/all_kids_mc_daily.csv")
 
 # study period 2005-2014 dataframe ----
 period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
@@ -288,7 +293,7 @@ period_df <- rbind(marginal_hia_period, female_hia_period, male_hia_period,
   rename(group = group2) 
 
 # write permanent file
-write_csv(period_df, "./data/mc_estimates/mc_period.csv")
+write_csv(period_df, "./data/mc_estimates/all_kids_mc_period.csv")
 
 # proportion dataframe ----
 prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
@@ -312,4 +317,27 @@ prop_df <- rbind(marginal_hia_prop, female_hia_prop, male_hia_prop,
 
 
 # write permanent file
-write_csv(prop_df, "./data/mc_estimates/mc_prop_100k.csv")
+write_csv(prop_df, "./data/mc_estimates/all_kids_mc_prop_100k.csv")
+
+# estimating sum of states using all kids population in only states used in BRFSS
+# asthma estimates
+daily_state_check <- daily_df %>% 
+  filter(state %in% asthma_states$asthma_states) %>% 
+  group_by(group) %>% 
+  summarise(median = sum(median), lower_bound = sum(lower_bound),
+            upper_bound = sum(upper_bound)) %>% 
+  mutate(time = "daily")
+
+# period
+period_state_check <- period_df %>% 
+  filter(state %in% asthma_states$asthma_states) %>% 
+  group_by(group) %>% 
+  summarise(median = sum(median), lower_bound = sum(lower_bound),
+            upper_bound = sum(upper_bound)) %>% 
+  mutate(time = "period")
+
+# bind period and daily estimates together
+state_sum_check <- bind_rows(daily_state_check, period_state_check)
+
+# write to file
+write_csv(state_sum_check, "./data/mc_estimates/state_sum_sensitivity.csv")

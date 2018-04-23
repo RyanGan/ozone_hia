@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
-# Title: Script to assemble all state-specific estimates for HIA
+# Title: Script to assemble all state-specific estimates for HIA where children
+#        with asthma are the population at risk
 # Author: Ryan Gan
 # Date: 2/21/17
 # ------------------------------------------------------------------------------
@@ -8,9 +9,8 @@
 library(tidyverse)
 
 # import created dataframes ----
-# pop at risk
-state_par_df <- read_csv("./data/state_strata_pop_at_risk.csv") %>% 
-  rename(state = State)
+# read in estimated children with prevalent asthma (count) by state
+state_par_df <- read_csv("./data/state_strata_pop_at_risk.csv") 
 
 glimpse(state_par_df)
 
@@ -56,4 +56,4 @@ state_strata_estimates <- state_par_df %>%
 glimpse(state_strata_estimates)
 
 # write permanent dataframe
-write_csv(state_strata_estimates, "./data/state_strata_hia_estimates.csv")
+write_csv(state_strata_estimates, "./data/state_strata_hia_kids_w_asthma_estimates.csv")
