@@ -113,7 +113,7 @@ ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = delta_o3), alpha = 0.8) +
-  scale_fill_gradientn("EOAS", 
+  scale_fill_gradientn("EOAS ppb", 
                        colours = c("#0a1d5c","#4B1248", "#F0C27B"),
                        values = rescale(c(-3, 0, 15)),
                        limits=c(-3, 15)) +
@@ -125,7 +125,7 @@ ozone_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 ozone_map
 # save 6 inch by 4 inch
-ggsave("./data/ozone_map.pdf", width = 6, height = 4, units = "in")
+ggsave("./data/ozone_map.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -154,7 +154,7 @@ smoke_days_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 smoke_days_map
 # smoke map
-ggsave("./data/smoke_days_map.pdf", width = 7, height = 4, units = "in")
+ggsave("./data/smoke_days_map.png", width = 7, height = 4, units = "in")
 
 ```
 
@@ -191,7 +191,7 @@ daily_us_plot <- ggplot(daily_df2, aes(x = group, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("Strata") +
-  ylab(expression(paste(Delta, "y Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Number of Emergency Department Visit"))) +
   coord_flip() +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
     panel.grid.major = element_blank(),
@@ -202,7 +202,7 @@ daily_us_plot <- ggplot(daily_df2, aes(x = group, y = median)) +
 
 daily_us_plot
 
-ggsave("./data/daily_us_bound_plots.pdf", 
+ggsave("./data/daily_us_bound_plots.png", 
        width = 6, height = 4, units = "in")
 ```
 
@@ -264,7 +264,8 @@ daily_plot <- ggplot(daily_df2, aes(x = state, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("State") +
-  ylab(expression(paste("Smoke-Affected Day ", Delta, "y Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Number Emergency Department Visit",
+                        " on a Smoke-Affected Day"))) +
   coord_flip() +
   facet_wrap(~group) +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -277,7 +278,7 @@ daily_plot <- ggplot(daily_df2, aes(x = state, y = median)) +
 daily_plot
 
 # save image (this one needs to be large so states aren't squished)
-ggsave("./data/daily_state_bound_plots.pdf", 
+ggsave("./data/daily_state_bound_plots.png", 
        width = 12, height = 12, units = "in")
 
 ```
@@ -314,7 +315,8 @@ daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
-  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c') + 
+  scale_fill_gradient("Daily Number \nof ED Visits", 
+                      low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -328,7 +330,7 @@ daily_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 daily_map
 
 # save 6 inch by 4 inch
-ggsave("./data/daily_y_map.pdf", width = 6, height = 4, units = "in")
+ggsave("./data/daily_y_map.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -358,7 +360,7 @@ period_us_plot <- ggplot(period_df2, aes(x = group, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("Strata") +
-  ylab(expression(paste(Delta, " Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Number of Emergency Department Visit 2005-2014"))) +
   coord_flip() +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
     panel.grid.major = element_blank(),
@@ -370,7 +372,7 @@ period_us_plot <- ggplot(period_df2, aes(x = group, y = median)) +
 period_us_plot
 
 # save 6 inch by 4 inch
-ggsave("./data/us_period_bounds_plot.pdf", width = 6, height = 4, units = "in")
+ggsave("./data/us_period_bounds_plot.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -432,7 +434,7 @@ period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
   xlab("State") +
-  ylab(expression(paste(Delta, " Emergency Department Visit"))) +
+  ylab(expression(paste(Delta, "y Number of Emergency Department Visit 2005-2014"))) +
   coord_flip() +
   facet_wrap(~group) +
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
@@ -445,7 +447,7 @@ period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
 period_plot
 
 # save map (this one needs to be large so states aren't squished)
-ggsave("./data/period_state_bound_plots.pdf", 
+ggsave("./data/period_state_bound_plots.png", 
        width = 12, height = 12, units = "in")
 
 ```
@@ -482,7 +484,8 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median), alpha = 0.7) +
-  scale_fill_gradient(expression("ED Visits"), low = '#2c7bb6', high = '#d7191c') + 
+  scale_fill_gradient(expression("Number of \nED Visits \n2005-2014"), 
+                      low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
   facet_wrap(~strata) + 
@@ -496,7 +499,7 @@ period_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 period_map
 
 # save 6 inch by 4 inch
-ggsave("./data/period_y_map.pdf", width = 6, height = 4, units = "in")
+ggsave("./data/period_y_map.png", width = 6, height = 4, units = "in")
 
 ```
 
@@ -524,6 +527,51 @@ knitr::kable(prop_df2, caption = paste0("Table: Estimated ED visit per 100k chil
   " that may be due to wildfire-generated ozone"))
 ```
 
+Per 100k summary estimates.
+
+```{r summary stats of state period 100k estimates, message = F, warning=F, echo = F, results='asis'}
+
+# Period estimates ----
+# small multiples plot
+prop_df2 <- prop_df %>% 
+  filter(state != "state_sum") %>% 
+   # capitalize first letter of each state
+  mutate(state = gsub("(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2", 
+                      state, perl=TRUE))
+
+# reorder state name to be descending
+prop_df2$state <- factor(prop_df2$state, 
+  levels = rev(unique(as.character(prop_df2$state))))
+# preserve order of group
+prop_df2$group <- factor(prop_df2$group, 
+  levels = unique(as.character(prop_df2$group)))
+
+# create table for summary stats ----
+# make dataframe
+prop_iqr_df <- as.data.frame(matrix(nrow = 6, ncol = 5))
+# assign variables
+colnames(prop_iqr_df) <- c("strata", "n_obs", "median", "perc_25", "perc_75")
+
+# strata names 
+prop_iqr_df[,1] <- unique(prop_df2$group)
+
+# loop to calculate vals
+# ozone vals
+for(i in 1:6){
+
+  prop_iqr_df[i, 2:5] <- prop_df2 %>% 
+    filter(group == as.character(prop_iqr_df[i,1])) %>% 
+    summarise(n_obs = n(), median_val = median(median_100k), 
+              perc_25 = quantile(median_100k, p = 0.25),
+              perc_75 = quantile(median_100k, p = 0.75))
+}
+
+
+# table ----
+knitr::kable(prop_iqr_df, caption = paste0("Table: Median and interquartile ",
+             "range of ED visits per 100k over study 2005-2014"))
+```
+
 ### Proportion Map
 
 Unlike the table, I set all values < 0 to 0 to avoid confusion.
@@ -546,22 +594,21 @@ state_map_df <- map_data("state")
 state_vals_map_df <- state_map_df %>% 
   full_join(prop_df_map, by = c("region" = "state")) %>% 
   mutate(missing = ifelse(is.na(median), 1, NA)) %>% 
-  filter(!is.na(strata))
+  filter(!is.na(strata)) %>% 
+  filter(strata == "Marginal")
 
 # preserve order of strata (groups)
 state_vals_map_df$strata <- factor(state_vals_map_df$strata, 
   levels = unique(as.character(state_vals_map_df$strata)))
-
 prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
   # outline of states
   geom_path() +
   # fill with median value of delta y
   geom_polygon(data = state_vals_map_df, aes(fill = median_100k), alpha = 0.7) +
-  scale_fill_gradient(expression("ED Visits per \n100k Children \nwith Asthma"), 
+  scale_fill_gradient(expression("ED Visits per \n100k Children \n2005-2014"), 
                       low = '#2c7bb6', high = '#d7191c') + 
   xlab("Longitude") +
   ylab("Latitude") +
-  facet_wrap(~strata) + 
   theme(panel.background = element_rect(fill = 'white', colour = 'black'),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
@@ -571,7 +618,7 @@ prop_map <- ggplot(state_map_df, aes(x = long, y = lat, group=group)) +
 
 prop_map
 # save image
-ggsave("./data/proportion_map.pdf", width = 6, height = 4, units = "in")
+ggsave("./data/proportion_map.png", width = 6, height = 4, units = "in")
 
 ```
 

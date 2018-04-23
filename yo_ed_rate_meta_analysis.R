@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
-# Title: Using meta-analysis to estimate beta and standard error
+# Title: Sensivity analysis: meta-analysis to estimate beta and standard error 
+#        using asthma ED visit rate among all children
 # Author: Ryan Gan
 # Date: 7/25/16
 # Update: 4/19/18

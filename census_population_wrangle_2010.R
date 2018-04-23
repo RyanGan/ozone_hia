@@ -5,7 +5,7 @@
 # ------------------------------------------------------------------------------
 
 # Note 4/19/18: It was pointed out by an astute reviewer that we are accounting
-# for ED visits in multiple ways. After careful thought, we decided to replace
+# for ED visits in multiple ways. These sensitivity analyses are for the scenario
 # the population at risk using all persons under 18 in a state, rather than 
 # the estimated number of children with asthma. This code prepares 2010 census
 # data to be used as the population at risk estimates.
