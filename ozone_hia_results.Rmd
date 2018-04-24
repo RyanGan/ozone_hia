@@ -426,9 +426,14 @@ knitr::kable(period_iqr_df, caption = paste0("Table: Median and interquartile ",
 These estimates were the daily estimates multiplied by the average number of smoky days observed in the specific state over the study period.
 
 ```{r period line graph, message = F, warning=F, echo = F, results='asis'}
-
+# group up maryland and sum dc in to maryland
+period_df3 <- period_df2 %>% 
+  group_by(state, group) %>%
+  summarise(median = sum(median), lower_bound = sum(lower_bound), 
+            upper_bound = sum(upper_bound))
+  
 # plot
-period_plot <- ggplot(period_df2, aes(x = state, y = median)) +
+period_plot <- ggplot(period_df3, aes(x = state, y = median)) +
   geom_point() +
   geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound)) +
   geom_hline(yintercept = 0, linetype = 'longdash', color = 'red') +
